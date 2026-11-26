@@ -210,7 +210,7 @@
                 <p class="small-note">Soft piano, ambient, singing bowls and wind chimes are made by the app and work offline.</p>
 
                 <!-- Your own music for the Music button -->
-                <div class="my-music">
+                <div class="my-music" id="my-music">
                     <h4>🎵 Your music</h4>
                     <p class="small-note">The Music button plays: <strong id="music-source-name">Focus default track</strong></p>
                     <form id="music-link-form" class="task-form" autocomplete="off">
@@ -218,9 +218,9 @@
                         <button type="submit" class="btn small-btn">Use link</button>
                     </form>
                     <div class="music-or"><span>or</span></div>
-                    <label class="btn small-btn file-btn">📁 Add songs from this device
-                        <input id="music-files" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac,.opus" multiple>
-                    </label>
+                    <button id="music-add-btn" class="btn small-btn file-btn" type="button">📁 Add songs from this device</button>
+                    <input id="music-files" class="visually-hidden" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac,.opus" multiple tabindex="-1" aria-hidden="true">
+                    <p class="drop-hint">or drag and drop music files onto this box</p>
                     <ul id="music-file-list" class="task-list"></ul>
                     <p id="music-msg" class="small-note" aria-live="polite"></p>
                     <button id="music-reset" class="link-btn" type="button" hidden>Go back to the default music</button>

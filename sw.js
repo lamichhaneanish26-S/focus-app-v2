@@ -1,6 +1,6 @@
 /* Focus App service worker: makes the app installable and lets it open offline.
    Bump CACHE_VERSION whenever you change any file below so users get the update. */
-const CACHE_VERSION = "focus2-v7";
+const CACHE_VERSION = "focus2-v8";
 
 const APP_FILES = [
   "./",

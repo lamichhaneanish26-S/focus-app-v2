@@ -1466,15 +1466,21 @@ html[data-theme="dark"] .now-playing strong { color: #e8f4ec; }
 
 .file-btn { display: inline-flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
 
-.file-btn input {
-  position: absolute;
+.visually-hidden {
+  position: absolute !important;
   width: 1px;
   height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.file-btn:focus-within { outline: 3px solid rgba(50, 122, 83, 0.45); outline-offset: 2px; }
+.drop-hint { margin: 8px 0 0; color: #52705e; font-size: 13px; }
+
+.my-music { border: 2px dashed transparent; transition: border-color 0.2s, background 0.2s; }
+.my-music.dragging { border-color: #327a53; background: rgba(220, 235, 220, 0.9); }
+html[data-theme="dark"] .my-music.dragging { background: rgba(50, 122, 83, 0.25); }
+html[data-theme="dark"] .drop-hint { color: #a9c4b4; }
 
 .music-file {
   display: flex;

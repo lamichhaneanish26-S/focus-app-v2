@@ -534,7 +534,8 @@ var FocusSounds = (function () {
 				del.textContent = "✕";
 				del.setAttribute("aria-label", "Remove " + song.name);
 				del.addEventListener("click", function () {
-					DB.remove(song.id).then(loadFiles).then(function () {
+					var gone = typeof song.id === "string" ? Promise.resolve(fileList = fileList.filter(function (x) { return x !== song; })).then(renderMusicUI) : DB.remove(song.id).then(loadFiles);
+					gone.then(function () {
 						if (!fileList.length && music.type === "files") setMusic({ type: "default" }, "No songs left — back to the default music.");
 					});
 				});
@@ -553,22 +554,58 @@ var FocusSounds = (function () {
 		if (currentName !== "music") select("music");
 	});
 
-	if (filesInput) filesInput.addEventListener("change", function () {
-		var files = Array.prototype.slice.call(filesInput.files || []).filter(function (f) { return /^audio\//.test(f.type) || /\.(mp3|m4a|aac|wav|ogg|oga|flac|opus|webm)$/i.test(f.name); });
-		if (!files.length) { say("Pick music files like MP3 or M4A."); return; }
+	function addSongs(fileArray) {
+		var files = Array.prototype.slice.call(fileArray || []).filter(function (f) {
+			return /^audio\//.test(f.type) || /\.(mp3|m4a|aac|wav|ogg|oga|flac|opus|webm)$/i.test(f.name);
+		});
+		if (!files.length) { say("Those weren't music files. Pick files like MP3, M4A or WAV."); return; }
 		say("Saving " + files.length + (files.length === 1 ? " song…" : " songs…"));
 		var chain = Promise.resolve();
 		files.forEach(function (f) {
 			chain = chain.then(function () { return DB.add({ name: f.name.replace(/\.[^.]+$/, ""), blob: f, added: Date.now() }); });
 		});
 		chain.then(loadFiles).then(function () {
-			filesInput.value = "";
+			if (filesInput) filesInput.value = "";
 			setMusic({ type: "files" }, "✓ Added " + files.length + (files.length === 1 ? " song" : " songs") + ". They play offline too.");
 			if (currentName !== "music") select("music");
 		}).catch(function () {
-			say("Couldn't save those songs. Your device may be out of space.");
+			// storage blocked (e.g. private browsing): still play them for this visit
+			fileList = fileList.concat(files.map(function (f, i) { return { id: "tmp" + Date.now() + i, name: f.name.replace(/\.[^.]+$/, ""), blob: f }; }));
+			renderMusicUI();
+			setMusic({ type: "files" }, "Added " + files.length + " for now. Your browser won't let Focus save them, so add them again next time.");
+			if (currentName !== "music") select("music");
 		});
+	}
+
+	var addBtn = document.getElementById("music-add-btn");
+	if (addBtn && filesInput) addBtn.addEventListener("click", function () {
+		say("Choose one or more music files…");
+		try { filesInput.click(); } catch (e) { say("Your browser can't open files here. Drag songs onto this box instead."); }
 	});
+	if (filesInput) filesInput.addEventListener("change", function () { addSongs(filesInput.files); });
+
+	// drag and drop songs onto the Your music box
+	var dropBox = document.getElementById("my-music");
+	if (dropBox) {
+		["dragenter", "dragover"].forEach(function (ev) {
+			dropBox.addEventListener(ev, function (e) {
+				if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") !== -1) {
+					e.preventDefault();
+					dropBox.classList.add("dragging");
+				}
+			});
+		});
+		["dragleave", "drop"].forEach(function (ev) {
+			dropBox.addEventListener(ev, function () { dropBox.classList.remove("dragging"); });
+		});
+		dropBox.addEventListener("drop", function (e) {
+			e.preventDefault();
+			if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addSongs(e.dataTransfer.files);
+		});
+	}
+	// a file dropped anywhere else shouldn't open in the tab and replace the app
+	window.addEventListener("dragover", function (e) { e.preventDefault(); });
+	window.addEventListener("drop", function (e) { if (!dropBox || !dropBox.contains(e.target)) e.preventDefault(); });
 
 	if (resetBtn) resetBtn.addEventListener("click", function () {
 		if (linkInput) linkInput.value = "";
