@@ -1,0 +1,126 @@
+# Builds the downloadable Focus apps and publishes them on the Releases page.
+# Runs when a version tag like v2.0.0 is pushed, or by hand from the Actions tab.
+name: Build downloadable apps
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            target: --win
+            file: Focus-Setup.exe
+          - os: macos-latest
+            name: Mac
+            target: --mac
+            file: Focus.dmg
+          - os: ubuntu-latest
+            name: Linux
+            target: --linux
+            file: Focus.AppImage
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Copy the website into the app
+        run: |
+          mkdir -p web
+          cp -r ../../index.html ../../download.html ../../Focus.css ../../Focus.js ../../manifest.json ../../sw.js ../../Images ../../icons web/
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder ${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.name }}
+          path: apps/desktop/dist/${{ matrix.file }}
+          if-no-files-found: error
+
+  android:
+    name: Android (phones and tablets)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Copy the website into the app
+        run: |
+          mkdir -p www
+          cp -r ../../index.html ../../download.html ../../Focus.css ../../Focus.js ../../manifest.json ../../sw.js ../../Images ../../icons www/
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Create the Android project
+        run: |
+          npx cap add android
+          npx @capacitor/assets generate --android --iconBackgroundColor '#285d43' --splashBackgroundColor '#e5f3e7' --splashBackgroundColorDark '#14241c'
+          sed -i 's/versionName "1.0"/versionName "2.0.0"/' android/app/build.gradle
+          npx cap sync android
+      - name: Build the APK
+        working-directory: apps/android/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../Focus.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-Android
+          path: apps/android/Focus.apk
+          if-no-files-found: error
+
+  release:
+    name: Publish the downloads
+    needs: [desktop, android]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - run: ls -la files
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Focus ${{ github.ref_name }}
+          files: files/*
+          make_latest: true
+          body: |
+            ## Download Focus
+            | Device | File |
+            | --- | --- |
+            | Windows | **Focus-Setup.exe** |
+            | Mac (Intel and Apple chips) | **Focus.dmg** |
+            | Android phones and tablets | **Focus.apk** |
+            | Linux | **Focus.AppImage** |
+            | iPhone and iPad | Open https://lamichhaneanish26-s.github.io/focus-app-v2/ in Safari → Share → Add to Home Screen |
+
+            Step-by-step install help: https://lamichhaneanish26-s.github.io/focus-app-v2/download.html

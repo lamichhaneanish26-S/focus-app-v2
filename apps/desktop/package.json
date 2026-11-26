@@ -1,0 +1,95 @@
+{
+  "name": "focus-study",
+  "productName": "Focus",
+  "version": "2.0.0",
+  "description": "Focus: a study break app with a Pomodoro timer, progress stats, breathing guide and calm sounds.",
+  "author": "Focus Team",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "io.github.lamichhaneanish26s.focus",
+    "productName": "Focus",
+    "copyright": "Focus Team",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "build/icon.png",
+      "web/**/*"
+    ],
+    "afterPack": "./adhoc-sign.js",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "Focus-Setup.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Focus"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "artifactName": "Focus.dmg"
+    },
+    "dmg": {
+      "title": "Focus"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "Education",
+      "artifactName": "Focus.AppImage"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "lamichhaneanish26-S",
+        "repo": "focus-app-v2",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lamichhaneanish26-S/focus-app-v2.git"
+  }
+}

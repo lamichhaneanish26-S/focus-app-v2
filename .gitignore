@@ -1,0 +1,6 @@
+node_modules/
+apps/desktop/dist/
+apps/desktop/web/
+apps/android/www/
+apps/android/android/
+apps/android/Focus.apk

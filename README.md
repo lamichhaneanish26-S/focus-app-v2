@@ -23,3 +23,20 @@ Plus everything from 1.0: study timer, breathing and stretching videos, Snake mi
 
 ## Updating
 After changing any file, bump `CACHE_VERSION` at the top of `sw.js` (e.g. `focus2-v1` → `focus2-v2`) so installed copies pick up the update.
+
+## Downloadable apps
+Get Focus for every device at **download.html** (the "⬇ Get the app" button in the menu):
+
+| Device | How |
+| --- | --- |
+| Windows | `Focus-Setup.exe` installer |
+| Mac | `Focus.dmg` (Intel and Apple chips) |
+| Android phones and tablets | `Focus.apk` |
+| Linux | `Focus.AppImage` |
+| iPhone and iPad | Safari → Share → Add to Home Screen |
+
+The files are built automatically by GitHub Actions (`.github/workflows/build-apps.yml`) and published on the Releases page.
+To make a new release: push a tag such as `v2.0.1`.
+
+- `apps/desktop` — the Windows/Mac/Linux app (Electron). It opens the live website, so it always has the latest version, and falls back to a copy inside the app when offline.
+- `apps/android` — the Android app (Capacitor). The website is bundled inside, so it works fully offline, and timer alerts use Android notifications.

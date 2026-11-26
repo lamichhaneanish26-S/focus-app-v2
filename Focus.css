@@ -1500,3 +1500,78 @@ html[data-theme="dark"] .my-music { background: rgba(255, 255, 255, 0.06); }
 html[data-theme="dark"] .music-player.kind-files { background: rgba(27, 46, 37, 0.96); }
 html[data-theme="dark"] .mini-title,
 html[data-theme="dark"] .music-file { color: #e8f4ec; }
+
+/* ===== Get the app page ===== */
+.dl-hero { max-width: 760px; margin: 10px auto 30px; text-align: center; }
+.dl-hero h1 { margin: 0 0 10px; font-size: clamp(34px, 5vw, 52px); text-shadow: 0 1px 10px rgba(255, 250, 245, 0.9); }
+.dl-hero p { font-size: 17px; font-weight: 600; text-shadow: 0 1px 6px rgba(255, 250, 245, 1); }
+
+.dl-suggest {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 16px 26px 22px;
+  border-radius: 24px;
+  background: rgba(255, 250, 240, 0.9);
+  box-shadow: 0 8px 20px rgba(33, 74, 54, 0.12);
+}
+.dl-suggest[hidden] { display: none; }
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.dl-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 8px 20px rgba(33, 74, 54, 0.1);
+  text-align: center;
+}
+
+.dl-card.is-you { border-color: #327a53; box-shadow: 0 0 0 4px rgba(50, 122, 83, 0.2), 0 8px 20px rgba(33, 74, 54, 0.12); }
+
+.dl-icon { font-size: 42px; }
+.dl-card h2 { margin: 6px 0 2px; font-size: 22px; }
+.dl-sub { margin: 0 0 14px; color: #52705e; font-size: 14px; }
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 20px;
+  border-radius: 30px;
+  background: #327a53;
+  color: #ffffff !important;
+  font-weight: bold;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(33, 74, 54, 0.2);
+}
+.dl-btn:hover { background: #2a6846; }
+.dl-btn.big { min-height: 54px; padding: 12px 28px; font-size: 18px; }
+
+.dl-card details { width: 100%; margin-top: 14px; text-align: left; }
+.dl-card summary { cursor: pointer; color: #327a53; font-weight: bold; text-align: center; }
+.dl-card ol { margin: 10px 0 0; padding-left: 22px; color: #214a36; font-size: 14px; line-height: 1.6; }
+.dl-card .small-note { text-align: left; }
+
+.dl-foot { margin-bottom: 50px; font-weight: 600; }
+
+/* "Get the app" link: hidden inside the installed apps */
+.get-app-link { background: #327a53 !important; color: #ffffff !important; border-color: #327a53 !important; }
+html.in-app .get-app-link, html.in-app #install-btn { display: none !important; }
+
+html[data-theme="dark"] .dl-card,
+html[data-theme="dark"] .dl-suggest { background: rgba(24, 40, 32, 0.88); border-color: rgba(255, 255, 255, 0.08); }
+html[data-theme="dark"] .dl-card ol { color: #dcebe2; }
+html[data-theme="dark"] .dl-hero h1, html[data-theme="dark"] .dl-hero p { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6); }

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get the Focus app</title>
+    <meta name="description" content="Download Focus for Windows, Mac, Android, iPhone and iPad.">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#285d43">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <script>
+        try {
+            var t = JSON.parse(localStorage.getItem("focusTheme") || "null");
+            document.documentElement.dataset.theme = t === "dark" ? "dark" : "light";
+        } catch (e) { document.documentElement.dataset.theme = "light"; }
+    </script>
+    <link rel="stylesheet" href="Focus.css">
+</head>
+<body class="download-page">
+    <div class="app-shell">
+        <header class="site-header">
+            <a class="brand" href="index.html">
+                <span class="brand-icon">🌲</span>
+                <span>
+                    <strong>Focus</strong>
+                    <small>Study • Focus • Recharge</small>
+                </span>
+            </a>
+            <nav class="top-nav" aria-label="Main navigation">
+                <a href="index.html">⌂ Back to the app</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="dl-hero">
+                <h1>Get the Focus app</h1>
+                <p>Free for Windows, Mac, Android, iPhone and iPad. Your timer, stats and music come with you, and it works offline.</p>
+                <div id="dl-suggest" class="dl-suggest" hidden>
+                    <p id="dl-suggest-text"></p>
+                    <a id="dl-suggest-btn" class="dl-btn big" href="#">Download</a>
+                </div>
+            </section>
+
+            <section class="dl-grid" aria-label="Downloads for each device">
+
+                <article class="dl-card" id="dl-windows" data-os="windows">
+                    <div class="dl-icon" aria-hidden="true">🪟</div>
+                    <h2>Windows</h2>
+                    <p class="dl-sub">Windows 10 and 11</p>
+                    <a class="dl-btn" href="https://github.com/lamichhaneanish26-S/focus-app-v2/releases/latest/download/Focus-Setup.exe">⬇ Download for Windows</a>
+                    <details>
+                        <summary>How to install</summary>
+                        <ol>
+                            <li>Open <b>Focus-Setup.exe</b> from your Downloads.</li>
+                            <li>If you see “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>. This shows for apps from small developers.</li>
+                            <li>Follow the steps. Focus appears on your desktop and Start menu.</li>
+                        </ol>
+                    </details>
+                </article>
+
+                <article class="dl-card" id="dl-mac" data-os="mac">
+                    <div class="dl-icon" aria-hidden="true">💻</div>
+                    <h2>Mac</h2>
+                    <p class="dl-sub">Intel and Apple-chip Macs</p>
+                    <a class="dl-btn" href="https://github.com/lamichhaneanish26-S/focus-app-v2/releases/latest/download/Focus.dmg">⬇ Download for Mac</a>
+                    <details>
+                        <summary>How to install</summary>
+                        <ol>
+                            <li>Open <b>Focus.dmg</b> and drag <b>Focus</b> into <b>Applications</b>.</li>
+                            <li>Open Focus. If your Mac says it can't check the app, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</li>
+                            <li>You only need to do this the first time.</li>
+                        </ol>
+                    </details>
+                </article>
+
+                <article class="dl-card" id="dl-android" data-os="android">
+                    <div class="dl-icon" aria-hidden="true">🤖</div>
+                    <h2>Android</h2>
+                    <p class="dl-sub">Phones and tablets</p>
+                    <a class="dl-btn" href="https://github.com/lamichhaneanish26-S/focus-app-v2/releases/latest/download/Focus.apk">⬇ Download for Android</a>
+                    <details>
+                        <summary>How to install</summary>
+                        <ol>
+                            <li>Tap <b>Focus.apk</b> when the download finishes.</li>
+                            <li>If asked, allow your browser to <b>install unknown apps</b>, then go back.</li>
+                            <li>Tap <b>Install</b>. Focus appears with your other apps.</li>
+                        </ol>
+                        <p class="small-note">Prefer not to download? In Chrome, tap <b>⋮ → Install app</b> on the Focus website.</p>
+                    </details>
+                </article>
+
+                <article class="dl-card" id="dl-ios" data-os="ios">
+                    <div class="dl-icon" aria-hidden="true">📱</div>
+                    <h2>iPhone &amp; iPad</h2>
+                    <p class="dl-sub">Installs from Safari, no download needed</p>
+                    <a class="dl-btn" href="index.html">Open Focus in Safari</a>
+                    <details open>
+                        <summary>How to install</summary>
+                        <ol>
+                            <li>Open the Focus website in <b>Safari</b>.</li>
+                            <li>Tap the <b>Share</b> button (square with an arrow).</li>
+                            <li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+                        </ol>
+                        <p class="small-note">Apple only allows app files through the App Store, so iPhone and iPad install Focus this way.</p>
+                    </details>
+                </article>
+
+                <article class="dl-card" id="dl-linux" data-os="linux">
+                    <div class="dl-icon" aria-hidden="true">🐧</div>
+                    <h2>Chromebook &amp; Linux</h2>
+                    <p class="dl-sub">Install from Chrome, or download for Linux</p>
+                    <a class="dl-btn" href="https://github.com/lamichhaneanish26-S/focus-app-v2/releases/latest/download/Focus.AppImage">⬇ Download for Linux</a>
+                    <details>
+                        <summary>How to install</summary>
+                        <ol>
+                            <li><b>Chromebook:</b> open the Focus website and click the install icon in the address bar.</li>
+                            <li><b>Linux:</b> download <b>Focus.AppImage</b>, right-click → Properties → allow running as a program, then open it.</li>
+                        </ol>
+                    </details>
+                </article>
+            </section>
+
+            <p class="dl-foot">All versions are free. <a href="https://github.com/lamichhaneanish26-S/focus-app-v2/releases/latest">See every download on GitHub</a></p>
+        </main>
+    </div>
+
+    <script>
+    {
+        const ua = navigator.userAgent;
+        const isIpad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+        let os = null;
+        if (/iPhone|iPad|iPod/.test(ua) || isIpad) os = "ios";
+        else if (/Android/.test(ua)) os = "android";
+        else if (/CrOS|Linux/.test(ua)) os = "linux";
+        else if (/Windows/.test(ua)) os = "windows";
+        else if (/Macintosh/.test(ua)) os = "mac";
+
+        const names = { windows: "Windows", mac: "Mac", android: "Android", ios: isIpad ? "iPad" : "iPhone", linux: "Chromebook or Linux" };
+        if (os) {
+            const card = document.querySelector('.dl-card[data-os="' + os + '"]');
+            const box = document.getElementById("dl-suggest");
+            const btn = document.getElementById("dl-suggest-btn");
+            card.classList.add("is-you");
+            card.querySelector("details").open = true;
+            document.querySelector(".dl-grid").prepend(card);
+            document.getElementById("dl-suggest-text").textContent = "Looks like you're on " + names[os] + ".";
+            const main = card.querySelector(".dl-btn");
+            btn.href = main.getAttribute("href");
+            btn.textContent = main.textContent;
+            box.hidden = false;
+        }
+    }
+    </script>
+</body>
+</html>

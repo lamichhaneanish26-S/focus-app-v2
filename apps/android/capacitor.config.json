@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.lamichhaneanish26s.focus",
+  "appName": "Focus",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#e5f3e7",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#285d43"
+    }
+  }
+}
