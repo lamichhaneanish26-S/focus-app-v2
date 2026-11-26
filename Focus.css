@@ -1568,10 +1568,49 @@ html[data-theme="dark"] .music-file { color: #e8f4ec; }
 .dl-foot { margin-bottom: 50px; font-weight: 600; }
 
 /* "Get the app" link: hidden inside the installed apps */
-.get-app-link { background: #327a53 !important; color: #ffffff !important; border-color: #327a53 !important; }
-html.in-app .get-app-link, html.in-app #install-btn { display: none !important; }
+html.in-app #install-btn { display: none !important; }
 
 html[data-theme="dark"] .dl-card,
 html[data-theme="dark"] .dl-suggest { background: rgba(24, 40, 32, 0.88); border-color: rgba(255, 255, 255, 0.08); }
 html[data-theme="dark"] .dl-card ol { color: #dcebe2; }
 html[data-theme="dark"] .dl-hero h1, html[data-theme="dark"] .dl-hero p { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6); }
+
+/* ===== Install App note ===== */
+.install-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 1100;
+  width: min(420px, calc(100vw - 24px));
+  padding: 18px 22px;
+  border-radius: 20px;
+  background: #fffaf0;
+  color: #214a36;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  transform: translateX(-50%);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.install-toast[hidden] { display: none; }
+.install-toast strong { display: block; margin-right: 28px; font-size: 17px; }
+.install-toast p, .install-toast ol { margin: 8px 0 0; text-align: left; color: #214a36; font-size: 15px; }
+.install-toast ol { padding-left: 22px; }
+.install-toast .toast-help { color: #52705e; font-size: 14px; }
+.install-toast a { display: inline-block; margin-top: 8px; color: #327a53; font-weight: bold; text-decoration: underline; }
+.install-toast-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #52705e;
+  font-size: 16px;
+  cursor: pointer;
+}
+.install-toast-close:hover { background: rgba(40, 93, 67, 0.1); }
+html[data-theme="dark"] .install-toast { background: #1b2e25; color: #e8f4ec; }
+html[data-theme="dark"] .install-toast p, html[data-theme="dark"] .install-toast ol { color: #dcebe2; }
+html[data-theme="dark"] .install-toast a { color: #8fd3a8; }

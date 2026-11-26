@@ -52,10 +52,9 @@
                 <a href="#breaks">♡ Break</a>
                 <a href="#sounds">🎧 Sounds</a>
                 <a href="#gaming">🎮 Game</a>
-                <a class="get-app-link" href="download.html">⬇ Get the app</a>
                 <button id="theme-btn" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Dark / light mode">🌙</button>
                 <button id="settings-btn" class="icon-btn" type="button" aria-label="Open settings" title="Settings">⚙️</button>
-                <button id="install-btn" class="install-btn" hidden>⬇ Install App</button>
+                <button id="install-btn" class="install-btn" type="button">⬇ Install App</button>
             </nav>
         </header>
 
@@ -301,6 +300,12 @@
 
             </section>
         </main>
+    </div>
+
+    <!-- Shown after "Install App" is clicked -->
+    <div id="install-toast" class="install-toast" role="status" aria-live="polite" hidden>
+        <button id="install-toast-close" class="install-toast-close" type="button" aria-label="Close">✕</button>
+        <div id="install-toast-body"></div>
     </div>
 
     <!-- Sound chooser shown when the app opens -->

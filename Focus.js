@@ -1551,27 +1551,73 @@ if (swSupported) {
   });
 }
 
-// Show an "Install App" button when the browser says the app can be installed
-// (Chrome, Edge and Android). On iPhone/iPad, use Share > Add to Home Screen instead.
-let deferredInstallPrompt = null;
-const installBtn = document.getElementById("install-btn");
+// One "Install App" button: downloads the right app for this device automatically.
+// iPhone and iPad can't download app files outside the App Store, so they get the Add to Home Screen steps.
+(function () {
+  var installBtn = document.getElementById("install-btn");
+  var toast = document.getElementById("install-toast");
+  var body = document.getElementById("install-toast-body");
+  var closeBtn = document.getElementById("install-toast-close");
+  if (!installBtn) return;
 
-window.addEventListener("beforeinstallprompt", function (e) {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  if (installBtn) installBtn.hidden = false;
-});
+  var BASE = "https://github.com/lamichhaneanish26-S/focus-app-v2/releases/latest/download/";
+  var FILES = {
+    windows: { file: "Focus-Setup.exe", name: "Windows", help: "If Windows says it protected your PC, click <b>More info → Run anyway</b>." },
+    mac: { file: "Focus.dmg", name: "Mac", help: "Drag <b>Focus</b> into <b>Applications</b>. If your Mac blocks it, go to <b>System Settings → Privacy &amp; Security → Open Anyway</b>." },
+    android: { file: "Focus.apk", name: "Android", help: "If asked, allow your browser to <b>install unknown apps</b>, then tap <b>Install</b>." },
+    linux: { file: "Focus.AppImage", name: "Linux", help: "Allow the file to run as a program (right-click → Properties), then open it." }
+  };
 
-if (installBtn) {
-  installBtn.addEventListener("click", async function () {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    installBtn.hidden = true;
+  function detect() {
+    var ua = navigator.userAgent || "";
+    var isIpad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+    if (/iPhone|iPad|iPod/.test(ua) || isIpad) return "ios";
+    if (/Android/.test(ua)) return "android";
+    if (/CrOS/.test(ua)) return "chromebook";
+    if (/Windows/.test(ua)) return "windows";
+    if (/Macintosh|Mac OS X/.test(ua)) return "mac";
+    if (/Linux/.test(ua)) return "linux";
+    return null;
+  }
+
+  function showToast(html) {
+    if (!toast) return;
+    body.innerHTML = html;
+    toast.hidden = false;
+  }
+  if (closeBtn) closeBtn.addEventListener("click", function () { toast.hidden = true; });
+
+  // Chromebooks install the web app itself, using the browser's own install prompt
+  var deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferredPrompt = e; });
+
+  installBtn.addEventListener("click", function () {
+    var os = detect();
+    if (FILES[os] && !navigator.onLine) {
+      showToast("<strong>You're offline</strong><p>Connect to the internet to download the Focus app.</p>");
+      return;
+    }
+    if (FILES[os]) {
+      var f = FILES[os];
+      window.location.href = BASE + f.file;   // starts the download right away
+      showToast("<strong>⬇ Downloading Focus for " + f.name + "…</strong>" +
+        "<p>When it finishes, open <b>" + f.file + "</b> from your downloads.</p>" +
+        "<p class=\"toast-help\">" + f.help + "</p>" +
+        "<a href=\"download.html\">Need help or a different device?</a>");
+      return;
+    }
+    if (os === "ios") {
+      showToast("<strong>📱 Add Focus to your Home Screen</strong>" +
+        "<ol><li>Tap the <b>Share</b> button <span aria-hidden=\"true\">(□↑)</span> in Safari.</li>" +
+        "<li>Tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol>" +
+        "<p class=\"toast-help\">Apple only allows app downloads through the App Store, so iPhone and iPad install Focus this way.</p>");
+      return;
+    }
+    if (os === "chromebook" && deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt = null;
+      return;
+    }
+    window.location.href = "download.html";
   });
-}
-
-window.addEventListener("appinstalled", function () {
-  if (installBtn) installBtn.hidden = true;
-});
+})();
