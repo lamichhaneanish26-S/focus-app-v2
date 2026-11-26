@@ -38,20 +38,61 @@ function focusDayKey(d) {
 
 /* ===== Pop-up alerts (notifications) ===== */
 var FocusNotify = (function () {
+	// Inside the Android app, use Android's own notifications (they arrive on time even when locked)
+	function nativeNotes() {
+		try {
+			var C = window.Capacitor;
+			if (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.LocalNotifications) return C.Plugins.LocalNotifications;
+		} catch (e) {}
+		return null;
+	}
 	function supported() {
 		try { return "Notification" in window; } catch (e) { return false; }
 	}
+	var END_ID = 1001, scheduledAt = 0;
+
 	return {
-		canAsk: function () { return supported() && Notification.permission === "default"; },
+		isNative: function () { return !!nativeNotes(); },
+		canAsk: function () {
+			if (nativeNotes()) return !FocusSettings.get("notify");
+			return supported() && Notification.permission === "default";
+		},
 		ask: function (done) {
+			var N = nativeNotes();
+			if (N) {
+				N.requestPermissions().then(function (r) { done(r && r.display === "granted"); }).catch(function () { done(false); });
+				return;
+			}
 			if (!supported()) { done(false); return; }
 			try {
 				var p = Notification.requestPermission(function (r) { done(r === "granted"); });
 				if (p && p.then) p.then(function (r) { done(r === "granted"); });
 			} catch (e) { done(false); }
 		},
+		// Android app: book the alert ahead of time for when the timer ends
+		scheduleEnd: function (atMs, title, body) {
+			var N = nativeNotes();
+			if (!N || !FocusSettings.get("notify")) return;
+			scheduledAt = atMs;
+			N.cancel({ notifications: [{ id: END_ID }] }).catch(function () {}).then(function () {
+				return N.schedule({ notifications: [{ id: END_ID, title: title, body: body, schedule: { at: new Date(atMs), allowWhileIdle: true } }] });
+			}).catch(function () {});
+		},
+		cancelEnd: function () {
+			var N = nativeNotes();
+			scheduledAt = 0;
+			if (N) N.cancel({ notifications: [{ id: END_ID }] }).catch(function () {});
+		},
 		send: function (title, body) {
-			if (!FocusSettings.get("notify") || !supported() || Notification.permission !== "granted") return;
+			if (!FocusSettings.get("notify")) return;
+			var N = nativeNotes();
+			if (N) {
+				// already booked with scheduleEnd? then Android shows it; don't double up
+				if (scheduledAt && Date.now() >= scheduledAt - 3000) { scheduledAt = 0; return; }
+				N.schedule({ notifications: [{ id: END_ID + 1, title: title, body: body }] }).catch(function () {});
+				return;
+			}
+			if (!supported() || Notification.permission !== "granted") return;
 			var opts = { body: body, icon: "icons/icon-192.png", badge: "icons/favicon-32.png", tag: "focus-timer", renotify: true };
 			try {
 				if (navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -72,7 +113,7 @@ var FocusSounds = (function () {
 	var NAMES = { music: "Music", piano: "Soft piano", ambient: "Ambient", bowls: "Singing bowls", chimes: "Wind chimes", quiet: "Nothing (quiet)" };
 	var volume = Number(FocusStore.get("focusVolume", 60));
 	var playerBox = document.getElementById("music-player");
-	var iframe = document.getElementById("sc-player");
+	var iframe = null;
 	var widget = null, widgetReady = false, apiLoading = false, wantMusic = false;
 
 	function unlock() {
@@ -237,13 +278,89 @@ var FocusSounds = (function () {
 		setTimeout(function () { try { c.out.disconnect(); } catch (e) {} }, 1400);
 	}
 
-	/* ---- music (SoundCloud player, needs internet) ---- */
+	/* ---- music: the default track, a playlist link, or the person's own songs ---- */
+	var DEFAULT_SC = "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A1476190729&color=%23285d43&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true";
+	var music = FocusStore.get("focusMusic", { type: "default" }) || { type: "default" };
+	var frame = null, frameKind = null, fileAudio = null, fileIndex = 0, fileList = [];
+
+	// Work out what a pasted link is
+	function parseMusicLink(raw) {
+		var url;
+		try { url = new URL(raw.trim()); } catch (e) { return null; }
+		var host = url.hostname.replace(/^www\.|^m\.|^music\./, "");
+		if (host === "youtube.com" || host === "youtu.be") {
+			var list = url.searchParams.get("list");
+			var id = host === "youtu.be" ? url.pathname.slice(1) : url.searchParams.get("v");
+			if (!id) { var sm = url.pathname.match(/\/(?:shorts|embed|live)\/([\w-]{6,})/); if (sm) id = sm[1]; }
+			if (!id && !list) return null;
+			return { type: "youtube", id: id || "", list: list || "", url: raw.trim(), label: list ? "YouTube playlist" : "YouTube video" };
+		}
+		if (host === "soundcloud.com" || host === "on.soundcloud.com") {
+			return { type: "soundcloud", url: raw.trim(), label: /\/sets\//.test(url.pathname) ? "SoundCloud playlist" : "SoundCloud" };
+		}
+		if (host === "open.spotify.com") {
+			var m = url.pathname.match(/(playlist|album|track|artist|episode|show)\/([A-Za-z0-9]+)/);
+			if (!m) return null;
+			return { type: "spotify", kind: m[1], id: m[2], url: raw.trim(), label: "Spotify " + m[1] };
+		}
+		return null;
+	}
+
+	function embedSrc(src) {
+		if (src.type === "youtube") {
+			var base = src.id ? "https://www.youtube.com/embed/" + encodeURIComponent(src.id) : "https://www.youtube.com/embed/videoseries";
+			var q = "?enablejsapi=1&playsinline=1&rel=0&origin=" + encodeURIComponent(location.origin);
+			if (src.list) q += "&list=" + encodeURIComponent(src.list);
+			else q += "&loop=1&playlist=" + encodeURIComponent(src.id);
+			return base + q;
+		}
+		if (src.type === "soundcloud") {
+			return "https://w.soundcloud.com/player/?url=" + encodeURIComponent(src.url) + "&color=%23285d43&auto_play=false&hide_related=true&show_comments=false&visual=true";
+		}
+		if (src.type === "spotify") {
+			return "https://open.spotify.com/embed/" + src.kind + "/" + src.id + "?utm_source=generator&theme=0";
+		}
+		return DEFAULT_SC;
+	}
+
+	function sourceName() {
+		if (music.type === "files") return "Your songs (" + fileList.length + ")";
+		if (music.type === "default") return "Focus default track";
+		return music.label || "Your link";
+	}
+
+	function ytCommand(func, args) {
+		if (frame && frame.contentWindow) {
+			try { frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: func, args: args || [] }), "*"); } catch (e) {}
+		}
+	}
+
+	function clearPlayer() {
+		if (fileAudio) { fileAudio.pause(); }
+		if (frame) { try { frame.src = "about:blank"; } catch (e) {} frame.remove(); }
+		frame = null; frameKind = null; widget = null; widgetReady = false;
+		if (playerBox) { playerBox.innerHTML = ""; playerBox.className = "music-player"; }
+	}
+
+	function showFrame(kind) {
+		clearPlayer();
+		frameKind = kind;
+		frame = document.createElement("iframe");
+		frame.id = "sc-player";
+		frame.title = "Your music";
+		frame.allow = "autoplay; encrypted-media; clipboard-write; picture-in-picture; fullscreen";
+		frame.src = kind === "default" ? DEFAULT_SC : embedSrc(music);
+		playerBox.className = "music-player kind-" + (kind === "default" ? "soundcloud" : kind);
+		playerBox.appendChild(frame);
+		iframe = frame;
+	}
+
+	/* SoundCloud (default track and SoundCloud links) */
 	function withWidget(cb) {
 		if (widget && widgetReady) { cb(); return; }
-		if (!iframe) return;
 		var make = function () {
 			try {
-				if (!widget) {
+				if (!widget && iframe) {
 					widget = window.SC.Widget(iframe);
 					widget.bind(window.SC.Widget.Events.READY, function () {
 						widgetReady = true;
@@ -257,28 +374,209 @@ var FocusSounds = (function () {
 		apiLoading = true;
 		var sc = document.createElement("script");
 		sc.src = "https://w.soundcloud.com/player/api.js";
-		sc.onload = make;
+		sc.onload = function () { apiLoading = false; make(); };
 		sc.onerror = function () { apiLoading = false; musicFailed(); };
 		document.head.appendChild(sc);
 	}
 
 	function musicFailed() {
 		if (currentName !== "music") return;
-		setNowPlaying("Music needs internet. Try Soft piano 🎹, it works offline");
+		setNowPlaying(music.type === "files" ? "Add some songs first, in Your music below" : "Music needs internet. Try Soft piano 🎹, it works offline");
+	}
+
+	/* Songs from the device, saved in the browser's storage (IndexedDB) so they work offline */
+	var DB = {
+		open: function () {
+			return new Promise(function (res, rej) {
+				try {
+					var r = indexedDB.open("focusMusic", 1);
+					r.onupgradeneeded = function () { r.result.createObjectStore("songs", { keyPath: "id", autoIncrement: true }); };
+					r.onsuccess = function () { res(r.result); };
+					r.onerror = function () { rej(r.error); };
+				} catch (e) { rej(e); }
+			});
+		},
+		run: function (mode, fn) {
+			return DB.open().then(function (db) {
+				return new Promise(function (res, rej) {
+					var tx = db.transaction("songs", mode), st = tx.objectStore("songs"), out = fn(st);
+					tx.oncomplete = function () { res(out && out.result !== undefined ? out.result : undefined); };
+					tx.onerror = function () { rej(tx.error); };
+				});
+			});
+		},
+		all: function () { return DB.run("readonly", function (st) { return st.getAll(); }); },
+		add: function (song) { return DB.run("readwrite", function (st) { return st.add(song); }); },
+		remove: function (id) { return DB.run("readwrite", function (st) { return st.delete(id); }); },
+		clear: function () { return DB.run("readwrite", function (st) { return st.clear(); }); }
+	};
+
+	function loadFiles() {
+		return DB.all().then(function (list) { fileList = list || []; renderMusicUI(); }).catch(function () { fileList = []; renderMusicUI(); });
+	}
+
+	function filePlay(index) {
+		if (!fileList.length) { musicFailed(); return; }
+		fileIndex = (index + fileList.length) % fileList.length;
+		var song = fileList[fileIndex];
+		if (!fileAudio) {
+			fileAudio = new Audio();
+			fileAudio.addEventListener("ended", function () { if (wantMusic) filePlay(fileIndex + 1); });
+		}
+		if (fileAudio.dataset.url) URL.revokeObjectURL(fileAudio.dataset.url);
+		var objUrl = URL.createObjectURL(song.blob);
+		fileAudio.dataset.url = objUrl;
+		fileAudio.src = objUrl;
+		fileAudio.volume = volume / 100;
+		fileAudio.play().catch(function () {});
+		renderFileCard();
+	}
+
+	function renderFileCard() {
+		if (!playerBox || music.type !== "files") return;
+		playerBox.className = "music-player kind-files";
+		var song = fileList[fileIndex];
+		playerBox.innerHTML =
+			'<div class="mini-player"><span class="mini-title"></span>' +
+			'<div class="mini-controls"><button type="button" data-act="prev" aria-label="Previous song">⏮</button>' +
+			'<button type="button" data-act="toggle" aria-label="Play or pause">' + (fileAudio && !fileAudio.paused ? "⏸" : "▶") + "</button>" +
+			'<button type="button" data-act="next" aria-label="Next song">⏭</button></div></div>';
+		playerBox.querySelector(".mini-title").textContent = song ? "🎵 " + song.name : "🎵 No songs yet";
+		playerBox.querySelectorAll("button").forEach(function (btn) {
+			btn.addEventListener("click", function () {
+				var act = btn.dataset.act;
+				if (act === "prev") filePlay(fileIndex - 1);
+				else if (act === "next") filePlay(fileIndex + 1);
+				else if (fileAudio) { if (fileAudio.paused) fileAudio.play().catch(function () {}); else fileAudio.pause(); setTimeout(renderFileCard, 50); }
+			});
+		});
 	}
 
 	function startMusic() {
 		wantMusic = true;
-		if (playerBox) playerBox.hidden = false;
+		if (!playerBox) return;
+		playerBox.hidden = false;
+		if (music.type === "files") {
+			clearPlayer();
+			if (!fileList.length) { playerBox.hidden = true; musicFailed(); return; }
+			filePlay(fileIndex);
+			return;
+		}
 		if (!navigator.onLine) { musicFailed(); return; }
-		withWidget(function () { widget.setVolume(volume); widget.play(); });
+		var kind = music.type === "default" ? "default" : music.type;
+		if (frameKind !== kind || !frame) showFrame(kind);
+		if (kind === "default" || kind === "soundcloud") {
+			withWidget(function () { widget.setVolume(volume); widget.play(); });
+		} else if (kind === "youtube") {
+			var go = function () { ytCommand("setVolume", [volume]); ytCommand("playVideo"); };
+			frame.addEventListener("load", function () { setTimeout(go, 600); setTimeout(go, 1800); }, { once: true });
+			go();
+		} else if (kind === "spotify") {
+			setNowPlaying("Spotify — press ▶ in the player (bottom right)");
+		}
 	}
 
 	function stopMusic() {
 		wantMusic = false;
-		if (widget && widgetReady) { try { widget.pause(); } catch (e) {} }
+		if (fileAudio) fileAudio.pause();
+		if (frameKind === "default" || frameKind === "soundcloud") {
+			if (widget && widgetReady) { try { widget.pause(); } catch (e) {} }
+		} else if (frameKind === "youtube") {
+			ytCommand("pauseVideo");
+		} else if (frameKind === "spotify") {
+			clearPlayer(); // Spotify can only be stopped by closing its player
+		}
 		if (playerBox) playerBox.hidden = true;
 	}
+
+	function musicSetVolume(v) {
+		if (fileAudio) fileAudio.volume = v / 100;
+		if (widget && widgetReady) { try { widget.setVolume(v); } catch (e) {} }
+		if (frameKind === "youtube") ytCommand("setVolume", [v]);
+	}
+
+	/* ---- "Your music" controls in the Calm sounds section ---- */
+	var linkForm = document.getElementById("music-link-form");
+	var linkInput = document.getElementById("music-link");
+	var filesInput = document.getElementById("music-files");
+	var listEl = document.getElementById("music-file-list");
+	var resetBtn = document.getElementById("music-reset");
+	var msgEl = document.getElementById("music-msg");
+	var srcNameEl = document.getElementById("music-source-name");
+
+	function say(t) { if (msgEl) msgEl.textContent = t; }
+
+	function setMusic(m, note) {
+		var wasPlaying = currentName === "music";
+		if (wasPlaying) stopMusic();
+		clearPlayer();
+		music = m;
+		FocusStore.set("focusMusic", m);
+		renderMusicUI();
+		if (note) say(note);
+		if (wasPlaying) startMusic();
+	}
+
+	function renderMusicUI() {
+		if (srcNameEl) srcNameEl.textContent = sourceName();
+		if (resetBtn) resetBtn.hidden = music.type === "default";
+		if (linkInput && music.url && document.activeElement !== linkInput) linkInput.value = music.url;
+		if (listEl) {
+			listEl.innerHTML = "";
+			fileList.forEach(function (song) {
+				var li = document.createElement("li");
+				li.className = "music-file";
+				var name = document.createElement("span");
+				name.textContent = "🎵 " + song.name;
+				var del = document.createElement("button");
+				del.type = "button";
+				del.className = "task-del";
+				del.textContent = "✕";
+				del.setAttribute("aria-label", "Remove " + song.name);
+				del.addEventListener("click", function () {
+					DB.remove(song.id).then(loadFiles).then(function () {
+						if (!fileList.length && music.type === "files") setMusic({ type: "default" }, "No songs left — back to the default music.");
+					});
+				});
+				li.appendChild(name);
+				li.appendChild(del);
+				listEl.appendChild(li);
+			});
+		}
+	}
+
+	if (linkForm) linkForm.addEventListener("submit", function (e) {
+		e.preventDefault();
+		var parsed = parseMusicLink(linkInput.value || "");
+		if (!parsed) { say("That link didn't work. Paste a link from YouTube, SoundCloud or Spotify."); return; }
+		setMusic(parsed, "✓ The Music button now plays your " + parsed.label + ".");
+		if (currentName !== "music") select("music");
+	});
+
+	if (filesInput) filesInput.addEventListener("change", function () {
+		var files = Array.prototype.slice.call(filesInput.files || []).filter(function (f) { return /^audio\//.test(f.type) || /\.(mp3|m4a|aac|wav|ogg|oga|flac|opus|webm)$/i.test(f.name); });
+		if (!files.length) { say("Pick music files like MP3 or M4A."); return; }
+		say("Saving " + files.length + (files.length === 1 ? " song…" : " songs…"));
+		var chain = Promise.resolve();
+		files.forEach(function (f) {
+			chain = chain.then(function () { return DB.add({ name: f.name.replace(/\.[^.]+$/, ""), blob: f, added: Date.now() }); });
+		});
+		chain.then(loadFiles).then(function () {
+			filesInput.value = "";
+			setMusic({ type: "files" }, "✓ Added " + files.length + (files.length === 1 ? " song" : " songs") + ". They play offline too.");
+			if (currentName !== "music") select("music");
+		}).catch(function () {
+			say("Couldn't save those songs. Your device may be out of space.");
+		});
+	});
+
+	if (resetBtn) resetBtn.addEventListener("click", function () {
+		if (linkInput) linkInput.value = "";
+		var removeSongs = fileList.length ? DB.clear().then(loadFiles) : Promise.resolve();
+		removeSongs.then(function () { setMusic({ type: "default" }, "✓ Back to the default Focus music."); });
+	});
+
+	loadFiles();
 
 	/* ---- choosing a sound ---- */
 	function setNowPlaying(text) {
@@ -310,7 +608,7 @@ var FocusSounds = (function () {
 		volume = Math.max(0, Math.min(100, Math.round(v)));
 		FocusStore.set("focusVolume", volume);
 		if (master) master.gain.value = gainFor(volume);
-		if (widget && widgetReady) { try { widget.setVolume(volume); } catch (e) {} }
+		musicSetVolume(volume);
 		document.querySelectorAll(".sound-volume").forEach(function (el) { if (Number(el.value) !== volume) el.value = volume; });
 		document.querySelectorAll(".volume-num").forEach(function (el) { el.textContent = volume + "%"; });
 	}
@@ -704,6 +1002,7 @@ var FocusTimer = (function () {
 	}
 
 	function setMode(md, seconds, quiet) {
+		if (ticker) FocusNotify.cancelEnd();
 		stopTicker();
 		mode = md;
 		paused = false;
@@ -741,6 +1040,8 @@ var FocusTimer = (function () {
 		stopTicker();
 		ticker = setInterval(tick, 250);
 		setRunning(true);
+		if (mode === "focus") FocusNotify.scheduleEnd(endTime, "Focus session done! 🎉", "Time for a break.");
+		else FocusNotify.scheduleEnd(endTime, "Break's over ⏰", "Ready for your next focus session?");
 		setStatus(mode === "focus" ? "Focusing… you can switch tabs, the timer keeps going." : MODE_NAMES[mode] + " — relax, you earned it 🌿");
 		tick();
 		saveState();
@@ -749,6 +1050,7 @@ var FocusTimer = (function () {
 	function pause() {
 		if (!ticker) return;
 		stopTicker();
+		FocusNotify.cancelEnd();
 		remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
 		show(remaining);
 		paused = true;
@@ -1223,6 +1525,17 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+
+/* ===== Inside an installed app? (Android app, desktop app, or home-screen app) ===== */
+(function () {
+	var inApp = false;
+	try {
+		inApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ||
+			/Electron/i.test(navigator.userAgent) ||
+			matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+	} catch (e) {}
+	if (inApp) document.documentElement.classList.add("in-app");
+})();
 
 /* ===== App install support ===== */
 

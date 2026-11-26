@@ -31,11 +31,7 @@
 
 <body>
 	<!-- Background Music Player -->
-<div class="music-player" id="music-player" hidden>
-	<iframe id="sc-player" allow="autoplay; encrypted-media" title="Background music"
-		src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A1476190729&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true">
-	</iframe>
-</div>
+<div class="music-player" id="music-player" hidden></div>
 
     <div class="app-shell">
 
@@ -211,7 +207,24 @@
                 <label class="volume-row">🔈
                     <input class="sound-volume" id="sound-volume" type="range" min="0" max="100" value="60" aria-label="Sound volume">
                 🔊 <span class="volume-num">60%</span></label>
-                <p class="small-note">Soft piano, ambient, singing bowls and wind chimes are made by the app and work offline. Music needs internet.</p>
+                <p class="small-note">Soft piano, ambient, singing bowls and wind chimes are made by the app and work offline.</p>
+
+                <!-- Your own music for the Music button -->
+                <div class="my-music">
+                    <h4>🎵 Your music</h4>
+                    <p class="small-note">The Music button plays: <strong id="music-source-name">Focus default track</strong></p>
+                    <form id="music-link-form" class="task-form" autocomplete="off">
+                        <input id="music-link" type="url" inputmode="url" placeholder="Paste a YouTube, SoundCloud or Spotify playlist link" aria-label="Playlist link">
+                        <button type="submit" class="btn small-btn">Use link</button>
+                    </form>
+                    <div class="music-or"><span>or</span></div>
+                    <label class="btn small-btn file-btn">📁 Add songs from this device
+                        <input id="music-files" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac,.opus" multiple>
+                    </label>
+                    <ul id="music-file-list" class="task-list"></ul>
+                    <p id="music-msg" class="small-note" aria-live="polite"></p>
+                    <button id="music-reset" class="link-btn" type="button" hidden>Go back to the default music</button>
+                </div>
             </section>
 
             <!-- Existing activity sections -->
