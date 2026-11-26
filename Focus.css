@@ -1344,3 +1344,37 @@ html[data-theme="dark"] .settings-dialog { background: #1b2e25; }
 html[data-theme="dark"] .settings-form fieldset { border-color: rgba(255, 255, 255, 0.14); }
 
 html[data-theme="dark"] .install-btn { background: #3f9466; }
+
+/* ===== Sound chooser + controls ===== */
+.music-player[hidden] { display: none; }
+
+#sounds .sound-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  max-width: 900px;
+}
+
+.choice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  margin: 16px 0 4px !important;
+}
+
+.choice-grid .sound-btn { padding: 14px 6px; font-size: 28px; }
+
+.sound-btn[data-sound="quiet"].active { border-color: #8aa596; background: #eef2ef; box-shadow: none; }
+
+.now-playing { margin: 16px 0 0; font-size: 16px; }
+
+.volume-num { min-width: 44px; font-size: 15px; font-weight: bold; }
+
+.dialog-lead { margin: 0; text-align: left; }
+
+.sound-dialog .settings-actions { margin-top: 8px; }
+
+.sound-dialog .settings-actions label.check { min-height: 44px; gap: 8px; }
+
+@media (max-width: 800px) {
+  #sounds .sound-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+html[data-theme="dark"] .sound-btn[data-sound="quiet"].active { background: #2a3a32; border-color: #a9c4b4; }
+html[data-theme="dark"] .now-playing strong { color: #e8f4ec; }

@@ -32,9 +32,9 @@
 
 <body>
 	<!-- Background Music Player -->
-<div class="music-player">
-	<iframe allow="autoplay; encrypted-media" title="Background music"
-		src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A1476190729&color=%23ff5500&auto_play=true&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true">
+<div class="music-player" id="music-player" hidden>
+	<iframe id="sc-player" allow="autoplay; encrypted-media" title="Background music"
+		src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A1476190729&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true">
 	</iframe>
 </div>
 
@@ -55,6 +55,7 @@
                 <a href="#studying">🌱 Focus</a>
                 <a href="#progress">📊 Progress</a>
                 <a href="#breaks">♡ Break</a>
+                <a href="#sounds">🎧 Sounds</a>
                 <a href="#gaming">🎮 Game</a>
                 <button id="theme-btn" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Dark / light mode">🌙</button>
                 <button id="settings-btn" class="icon-btn" type="button" aria-label="Open settings" title="Settings">⚙️</button>
@@ -195,19 +196,23 @@
                 </div>
             </section>
 
-            <!-- Calm sounds (made in the browser, work offline) -->
+            <!-- Calm sounds: music or sounds made in the browser (those work offline) -->
             <section id="sounds" class="activity-detail">
                 <h2>Calm sounds 🎧</h2>
-                <p>Background sounds made right in the app, so they work even offline.</p>
+                <p>Choose what you hear while you study. Only one plays at a time.</p>
                 <div class="sound-grid">
+                    <button class="sound-btn" type="button" data-sound="music" aria-pressed="false">🎵<span>Music</span></button>
                     <button class="sound-btn" type="button" data-sound="rain" aria-pressed="false">🌧️<span>Rain</span></button>
                     <button class="sound-btn" type="button" data-sound="waves" aria-pressed="false">🌊<span>Waves</span></button>
                     <button class="sound-btn" type="button" data-sound="forest" aria-pressed="false">🌲<span>Forest</span></button>
                     <button class="sound-btn" type="button" data-sound="brown" aria-pressed="false">🟤<span>Brown noise</span></button>
+                    <button class="sound-btn" type="button" data-sound="quiet" aria-pressed="true">🔇<span>Quiet</span></button>
                 </div>
+                <p class="now-playing" aria-live="polite">Now playing: <strong class="now-playing-name">Nothing (quiet)</strong></p>
                 <label class="volume-row">🔈
-                    <input id="sound-volume" type="range" min="0" max="100" value="50" aria-label="Sound volume">
-                🔊</label>
+                    <input class="sound-volume" id="sound-volume" type="range" min="0" max="100" value="60" aria-label="Sound volume">
+                🔊 <span class="volume-num">60%</span></label>
+                <p class="small-note">Rain, waves, forest and brown noise are made by the app and work offline. Music needs internet.</p>
             </section>
 
             <!-- Existing activity sections -->
@@ -285,6 +290,29 @@
         </main>
     </div>
 
+    <!-- Sound chooser shown when the app opens -->
+    <dialog id="sound-dialog" class="settings-dialog sound-dialog" aria-labelledby="sound-dialog-title">
+        <form method="dialog" class="settings-form">
+            <h3 id="sound-dialog-title">🎧 How do you want to focus?</h3>
+            <p class="dialog-lead">Pick a background sound, or keep it quiet. You can change it anytime in Calm sounds.</p>
+            <div class="sound-grid choice-grid">
+                <button class="sound-btn" type="button" data-sound="music" aria-pressed="false">🎵<span>Music</span></button>
+                <button class="sound-btn" type="button" data-sound="rain" aria-pressed="false">🌧️<span>Rain</span></button>
+                <button class="sound-btn" type="button" data-sound="waves" aria-pressed="false">🌊<span>Waves</span></button>
+                <button class="sound-btn" type="button" data-sound="forest" aria-pressed="false">🌲<span>Forest</span></button>
+                <button class="sound-btn" type="button" data-sound="brown" aria-pressed="false">🟤<span>Brown noise</span></button>
+                <button class="sound-btn" type="button" data-sound="quiet" aria-pressed="true">🔇<span>Quiet</span></button>
+            </div>
+            <label class="volume-row">🔈
+                <input class="sound-volume" type="range" min="0" max="100" value="60" aria-label="Sound volume">
+            🔊 <span class="volume-num">60%</span></label>
+            <div class="settings-actions">
+                <label class="check"><input id="sound-dont-ask" type="checkbox"> Don't ask again</label>
+                <button class="btn small-btn" value="close">Start studying</button>
+            </div>
+        </form>
+    </dialog>
+
     <!-- Settings -->
     <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
         <form method="dialog" class="settings-form">
@@ -310,6 +338,7 @@
                 <label class="check"><input id="set-notify" type="checkbox"> Pop-up alert when time is up</label>
                 <label class="check"><input id="set-reminders" type="checkbox"> Show break ideas (stretch, drink water…)</label>
                 <label class="check"><input id="set-awake" type="checkbox"> Keep the screen on while the timer runs</label>
+                <label class="check"><input id="set-asksound" type="checkbox"> Ask which sound to play when the app opens</label>
             </fieldset>
 
             <div class="settings-actions">

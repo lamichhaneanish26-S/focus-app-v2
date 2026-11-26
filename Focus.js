@@ -19,7 +19,7 @@ var FocusSettings = (function () {
 	var defaults = {
 		focus: 25, short: 5, long: 15, every: 4,
 		autoBreaks: true, autoFocus: false,
-		sound: true, notify: false, reminders: true, keepAwake: true
+		sound: true, notify: false, reminders: true, keepAwake: true, askSound: true
 	};
 	var saved = FocusStore.get("focusSettings", {});
 	var s = {};
@@ -66,23 +66,30 @@ var FocusNotify = (function () {
 	};
 })();
 
-/* ===== Sounds: timer chime + calm background sounds (made in the browser, work offline) ===== */
+/* ===== Sounds: timer chime, music, and calm sounds made in the browser (work offline) ===== */
 var FocusSounds = (function () {
-	var ctx = null, master = null, current = null, currentName = null;
-	var volumeEl = document.getElementById("sound-volume");
+	var ctx = null, master = null, current = null, currentName = "quiet";
+	var NAMES = { music: "Music", rain: "Rain", waves: "Waves", forest: "Forest", brown: "Brown noise", quiet: "Nothing (quiet)" };
+	var volume = Number(FocusStore.get("focusVolume", 60));
+	var playerBox = document.getElementById("music-player");
+	var iframe = document.getElementById("sc-player");
+	var widget = null, widgetReady = false, apiLoading = false, wantMusic = false;
 
 	function unlock() {
 		try {
 			if (!ctx) {
 				ctx = new (window.AudioContext || window.webkitAudioContext)();
 				master = ctx.createGain();
-				master.gain.value = volumeEl ? volumeEl.value / 100 : 0.5;
+				master.gain.value = gainFor(volume);
 				master.connect(ctx.destination);
 			}
 			if (ctx.state === "suspended") ctx.resume();
 		} catch (e) { ctx = null; }
 		return ctx;
 	}
+
+	// a little extra boost so the calm sounds are easy to hear
+	function gainFor(v) { return Math.pow(v / 100, 1.3) * 1.8; }
 
 	function chime() {
 		if (!ctx) return;
@@ -103,6 +110,7 @@ var FocusSounds = (function () {
 		} catch (e) { /* sound is optional */ }
 	}
 
+	/* ---- generated sounds ---- */
 	function noiseBuffer(kind) {
 		var len = ctx.sampleRate * 4;
 		var buf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -149,24 +157,23 @@ var FocusSounds = (function () {
 		var src, f1, f2, g;
 		if (name === "rain") {
 			src = source("white");
-			f1 = ctx.createBiquadFilter(); f1.type = "highpass"; f1.frequency.value = 900;
-			f2 = ctx.createBiquadFilter(); f2.type = "lowpass"; f2.frequency.value = 7000;
-			g = ctx.createGain(); g.gain.value = 0.22;
+			f1 = ctx.createBiquadFilter(); f1.type = "highpass"; f1.frequency.value = 800;
+			f2 = ctx.createBiquadFilter(); f2.type = "lowpass"; f2.frequency.value = 7500;
+			g = ctx.createGain(); g.gain.value = 0.35;
 			src.connect(f1).connect(f2).connect(g).connect(out);
 			nodes.push(src);
 		} else if (name === "waves") {
 			src = source("brown");
-			f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = 700;
+			f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = 900;
 			g = ctx.createGain();
 			src.connect(f1).connect(g).connect(out);
-			nodes.push(src, lfo(g.gain, 0.09, 0.45, 0.5));
+			nodes.push(src, lfo(g.gain, 0.09, 0.55, 0.65));
 		} else if (name === "forest") {
 			src = source("pink");
 			f1 = ctx.createBiquadFilter(); f1.type = "bandpass"; f1.frequency.value = 500; f1.Q.value = 0.4;
 			g = ctx.createGain();
 			src.connect(f1).connect(g).connect(out);
-			nodes.push(src, lfo(g.gain, 0.05, 0.25, 0.45));
-			// gentle bird chirps every few seconds
+			nodes.push(src, lfo(g.gain, 0.05, 0.3, 0.6));
 			var chirp = function () {
 				if (currentName !== "forest") return;
 				var t = ctx.currentTime, base = 2200 + Math.random() * 1500;
@@ -176,7 +183,7 @@ var FocusSounds = (function () {
 					o.frequency.setValueAtTime(base, st);
 					o.frequency.exponentialRampToValueAtTime(base * 1.35, st + 0.09);
 					cg.gain.setValueAtTime(0.0001, st);
-					cg.gain.exponentialRampToValueAtTime(0.05, st + 0.02);
+					cg.gain.exponentialRampToValueAtTime(0.08, st + 0.02);
 					cg.gain.exponentialRampToValueAtTime(0.0001, st + 0.12);
 					o.connect(cg).connect(out);
 					o.start(st); o.stop(st + 0.14);
@@ -186,26 +193,25 @@ var FocusSounds = (function () {
 			timers.push(setTimeout(chirp, 1500));
 		} else {
 			src = source("brown");
-			f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = 450;
-			g = ctx.createGain(); g.gain.value = 0.6;
+			f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = 500;
+			g = ctx.createGain(); g.gain.value = 0.8;
 			src.connect(f1).connect(g).connect(out);
 			nodes.push(src);
 		}
-		nodes.forEach(function (n) { if (n.start && n instanceof AudioBufferSourceNode) n.start(); });
+		nodes.forEach(function (n) { if (n instanceof AudioBufferSourceNode) n.start(); });
 		out.gain.setValueAtTime(0.0001, ctx.currentTime);
 		out.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.2);
 		return { out: out, nodes: nodes, timers: timers };
 	}
 
-	function stop() {
+	function stopGenerated() {
 		if (!current) return;
 		var c = current;
 		current = null;
-		currentName = null;
 		c.timers.forEach(clearTimeout);
 		try {
 			c.out.gain.cancelScheduledValues(ctx.currentTime);
-			c.out.gain.setValueAtTime(c.out.gain.value || 0.5, ctx.currentTime);
+			c.out.gain.setValueAtTime(Math.max(c.out.gain.value, 0.001), ctx.currentTime);
 			c.out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
 		} catch (e) {}
 		setTimeout(function () {
@@ -214,35 +220,115 @@ var FocusSounds = (function () {
 		}, 700);
 	}
 
-	function play(name) {
-		if (!unlock()) return false;
-		if (currentName === name) { stop(); return false; }
-		stop();
+	/* ---- music (SoundCloud player, needs internet) ---- */
+	function withWidget(cb) {
+		if (widget && widgetReady) { cb(); return; }
+		if (!iframe) return;
+		var make = function () {
+			try {
+				if (!widget) {
+					widget = window.SC.Widget(iframe);
+					widget.bind(window.SC.Widget.Events.READY, function () {
+						widgetReady = true;
+						if (wantMusic) { widget.setVolume(volume); widget.play(); }
+					});
+				}
+			} catch (e) { musicFailed(); }
+		};
+		if (window.SC && window.SC.Widget) { make(); return; }
+		if (apiLoading) return;
+		apiLoading = true;
+		var sc = document.createElement("script");
+		sc.src = "https://w.soundcloud.com/player/api.js";
+		sc.onload = make;
+		sc.onerror = function () { apiLoading = false; musicFailed(); };
+		document.head.appendChild(sc);
+	}
+
+	function musicFailed() {
+		if (currentName !== "music") return;
+		setNowPlaying("Music isn't available offline. Try Rain or Waves 🌧️");
+	}
+
+	function startMusic() {
+		wantMusic = true;
+		if (playerBox) playerBox.hidden = false;
+		if (!navigator.onLine) { musicFailed(); return; }
+		withWidget(function () { widget.setVolume(volume); widget.play(); });
+	}
+
+	function stopMusic() {
+		wantMusic = false;
+		if (widget && widgetReady) { try { widget.pause(); } catch (e) {} }
+		if (playerBox) playerBox.hidden = true;
+	}
+
+	/* ---- choosing a sound ---- */
+	function setNowPlaying(text) {
+		document.querySelectorAll(".now-playing-name").forEach(function (el) { el.textContent = text; });
+	}
+
+	function renderButtons() {
+		document.querySelectorAll(".sound-btn").forEach(function (b) {
+			var on = b.dataset.sound === currentName;
+			b.classList.toggle("active", on);
+			b.setAttribute("aria-pressed", on ? "true" : "false");
+		});
+		setNowPlaying(NAMES[currentName] || NAMES.quiet);
+	}
+
+	function select(name) {
+		if (!NAMES[name]) name = "quiet";
+		if (name === currentName && name !== "quiet") name = "quiet"; // tap again to turn off
+		stopGenerated();
+		if (name !== "music") stopMusic();
 		currentName = name;
-		current = build(name);
-		return true;
+		if (name === "music") startMusic();
+		else if (name !== "quiet" && unlock()) current = build(name);
+		renderButtons();
+		if (name === "music" && !navigator.onLine) musicFailed();
+	}
+
+	function setVolume(v) {
+		volume = Math.max(0, Math.min(100, Math.round(v)));
+		FocusStore.set("focusVolume", volume);
+		if (master) master.gain.value = gainFor(volume);
+		if (widget && widgetReady) { try { widget.setVolume(volume); } catch (e) {} }
+		document.querySelectorAll(".sound-volume").forEach(function (el) { if (Number(el.value) !== volume) el.value = volume; });
+		document.querySelectorAll(".volume-num").forEach(function (el) { el.textContent = volume + "%"; });
 	}
 
 	document.querySelectorAll(".sound-btn").forEach(function (btn) {
-		btn.addEventListener("click", function () {
-			var on = play(btn.dataset.sound);
-			document.querySelectorAll(".sound-btn").forEach(function (b) {
-				var active = on && b === btn;
-				b.classList.toggle("active", active);
-				b.setAttribute("aria-pressed", active ? "true" : "false");
-			});
-		});
+		btn.addEventListener("click", function () { select(btn.dataset.sound); });
 	});
+	document.querySelectorAll(".sound-volume").forEach(function (el) {
+		el.addEventListener("input", function () { setVolume(Number(el.value)); });
+	});
+	setVolume(volume);
+	renderButtons();
 
-	if (volumeEl) {
-		volumeEl.value = FocusStore.get("focusVolume", 50);
-		volumeEl.addEventListener("input", function () {
-			FocusStore.set("focusVolume", Number(volumeEl.value));
-			if (master) master.gain.value = volumeEl.value / 100;
+	/* ---- ask which sound to use when the app opens ---- */
+	var dialog = document.getElementById("sound-dialog");
+	var dontAsk = document.getElementById("sound-dont-ask");
+	function askOnOpen() {
+		if (!dialog || !FocusSettings.get("askSound")) return;
+		if (new URLSearchParams(location.search).get("start")) return; // opened from a shortcut
+		try {
+			if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+		} catch (e) { return; }
+		// picking a sound in the window closes it
+		dialog.querySelectorAll(".sound-btn").forEach(function (btn) {
+			btn.addEventListener("click", function () { setTimeout(function () { if (dialog.open) dialog.close(); }, 250); });
+		});
+		dialog.addEventListener("close", function () {
+			if (dontAsk && dontAsk.checked) {
+				FocusSettings.set("askSound", false);
+				if (typeof FocusSettingsUI !== "undefined") FocusSettingsUI.sync();
+			}
 		});
 	}
 
-	return { unlock: unlock, chime: chime, stop: stop, playing: function () { return currentName; } };
+	return { unlock: unlock, chime: chime, select: select, askOnOpen: askOnOpen, playing: function () { return currentName; } };
 })();
 
 /* ===== Study stats: minutes per day, week total, streak, 7-day chart ===== */
@@ -784,7 +870,7 @@ var FocusSettingsUI = (function () {
 	var NUMBERS = { focus: "set-focus", short: "set-short", long: "set-long", every: "set-every" };
 	var CHECKS = {
 		autoBreaks: "set-autobreak", autoFocus: "set-autofocus", sound: "set-sound",
-		notify: "set-notify", reminders: "set-reminders", keepAwake: "set-awake"
+		notify: "set-notify", reminders: "set-reminders", keepAwake: "set-awake", askSound: "set-asksound"
 	};
 
 	function el(id) { return document.getElementById(id); }
@@ -855,6 +941,7 @@ var FocusSettingsUI = (function () {
 })();
 
 if (FocusTimer) FocusTimer.restore();
+FocusSounds.askOnOpen();
 
 
 /* ===== Snake Game ===== */
