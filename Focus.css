@@ -1378,3 +1378,13 @@ html[data-theme="dark"] .install-btn { background: #3f9466; }
 
 html[data-theme="dark"] .sound-btn[data-sound="quiet"].active { background: #2a3a32; border-color: #a9c4b4; }
 html[data-theme="dark"] .now-playing strong { color: #e8f4ec; }
+
+.sound-btn .default-tag {
+  margin-top: -2px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #327a53;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+}

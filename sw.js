@@ -1,6 +1,6 @@
 /* Focus App service worker: makes the app installable and lets it open offline.
    Bump CACHE_VERSION whenever you change any file below so users get the update. */
-const CACHE_VERSION = "focus2-v2";
+const CACHE_VERSION = "focus2-v4";
 
 const APP_FILES = [
   "./",
@@ -52,20 +52,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: serve from cache, then update it in the background.
+  // Everything else: get the newest copy, fall back to the saved one when offline.
+  // (Network first keeps the page and its code in step after an update.)
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req, { ignoreSearch: true }))
   );
 });
 

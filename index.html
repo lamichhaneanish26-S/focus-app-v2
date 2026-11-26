@@ -19,11 +19,10 @@
 
     <!-- Apply the saved light/dark theme before the page draws, so it doesn't flash -->
     <script>
+        // Always start with the original light theme, unless the person switched to dark mode themselves
         try {
-            var t = localStorage.getItem("focusTheme");
-            if (t) t = JSON.parse(t);
-            if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-            document.documentElement.dataset.theme = t;
+            var t = JSON.parse(localStorage.getItem("focusTheme") || "null");
+            document.documentElement.dataset.theme = t === "dark" ? "dark" : "light";
         } catch (e) { document.documentElement.dataset.theme = "light"; }
     </script>
 
@@ -202,17 +201,17 @@
                 <p>Choose what you hear while you study. Only one plays at a time.</p>
                 <div class="sound-grid">
                     <button class="sound-btn" type="button" data-sound="music" aria-pressed="false">🎵<span>Music</span></button>
-                    <button class="sound-btn" type="button" data-sound="rain" aria-pressed="false">🌧️<span>Rain</span></button>
-                    <button class="sound-btn" type="button" data-sound="waves" aria-pressed="false">🌊<span>Waves</span></button>
-                    <button class="sound-btn" type="button" data-sound="forest" aria-pressed="false">🌲<span>Forest</span></button>
-                    <button class="sound-btn" type="button" data-sound="brown" aria-pressed="false">🟤<span>Brown noise</span></button>
+                    <button class="sound-btn" type="button" data-sound="piano" aria-pressed="false">🎹<span>Soft piano</span></button>
+                    <button class="sound-btn" type="button" data-sound="ambient" aria-pressed="false">🌌<span>Ambient</span></button>
+                    <button class="sound-btn" type="button" data-sound="bowls" aria-pressed="false">🔔<span>Singing bowls</span></button>
+                    <button class="sound-btn" type="button" data-sound="chimes" aria-pressed="false">🎐<span>Wind chimes</span></button>
                     <button class="sound-btn" type="button" data-sound="quiet" aria-pressed="true">🔇<span>Quiet</span></button>
                 </div>
                 <p class="now-playing" aria-live="polite">Now playing: <strong class="now-playing-name">Nothing (quiet)</strong></p>
                 <label class="volume-row">🔈
                     <input class="sound-volume" id="sound-volume" type="range" min="0" max="100" value="60" aria-label="Sound volume">
                 🔊 <span class="volume-num">60%</span></label>
-                <p class="small-note">Rain, waves, forest and brown noise are made by the app and work offline. Music needs internet.</p>
+                <p class="small-note">Soft piano, ambient, singing bowls and wind chimes are made by the app and work offline. Music needs internet.</p>
             </section>
 
             <!-- Existing activity sections -->
@@ -294,13 +293,13 @@
     <dialog id="sound-dialog" class="settings-dialog sound-dialog" aria-labelledby="sound-dialog-title">
         <form method="dialog" class="settings-form">
             <h3 id="sound-dialog-title">🎧 How do you want to focus?</h3>
-            <p class="dialog-lead">Pick a background sound, or keep it quiet. You can change it anytime in Calm sounds.</p>
+            <p class="dialog-lead">Music is ready to play. Pick another sound if you like, or keep it quiet. You can change it anytime in Calm sounds.</p>
             <div class="sound-grid choice-grid">
-                <button class="sound-btn" type="button" data-sound="music" aria-pressed="false">🎵<span>Music</span></button>
-                <button class="sound-btn" type="button" data-sound="rain" aria-pressed="false">🌧️<span>Rain</span></button>
-                <button class="sound-btn" type="button" data-sound="waves" aria-pressed="false">🌊<span>Waves</span></button>
-                <button class="sound-btn" type="button" data-sound="forest" aria-pressed="false">🌲<span>Forest</span></button>
-                <button class="sound-btn" type="button" data-sound="brown" aria-pressed="false">🟤<span>Brown noise</span></button>
+                <button class="sound-btn is-default" type="button" data-sound="music" aria-pressed="false">🎵<span>Music</span><small class="default-tag">Default</small></button>
+                <button class="sound-btn" type="button" data-sound="piano" aria-pressed="false">🎹<span>Soft piano</span></button>
+                <button class="sound-btn" type="button" data-sound="ambient" aria-pressed="false">🌌<span>Ambient</span></button>
+                <button class="sound-btn" type="button" data-sound="bowls" aria-pressed="false">🔔<span>Singing bowls</span></button>
+                <button class="sound-btn" type="button" data-sound="chimes" aria-pressed="false">🎐<span>Wind chimes</span></button>
                 <button class="sound-btn" type="button" data-sound="quiet" aria-pressed="true">🔇<span>Quiet</span></button>
             </div>
             <label class="volume-row">🔈
@@ -308,7 +307,7 @@
             🔊 <span class="volume-num">60%</span></label>
             <div class="settings-actions">
                 <label class="check"><input id="sound-dont-ask" type="checkbox"> Don't ask again</label>
-                <button class="btn small-btn" value="close">Start studying</button>
+                <button class="btn small-btn" value="start">Start studying</button>
             </div>
         </form>
     </dialog>

@@ -69,7 +69,7 @@ var FocusNotify = (function () {
 /* ===== Sounds: timer chime, music, and calm sounds made in the browser (work offline) ===== */
 var FocusSounds = (function () {
 	var ctx = null, master = null, current = null, currentName = "quiet";
-	var NAMES = { music: "Music", rain: "Rain", waves: "Waves", forest: "Forest", brown: "Brown noise", quiet: "Nothing (quiet)" };
+	var NAMES = { music: "Music", piano: "Soft piano", ambient: "Ambient", bowls: "Singing bowls", chimes: "Wind chimes", quiet: "Nothing (quiet)" };
 	var volume = Number(FocusStore.get("focusVolume", 60));
 	var playerBox = document.getElementById("music-player");
 	var iframe = document.getElementById("sc-player");
@@ -89,7 +89,7 @@ var FocusSounds = (function () {
 	}
 
 	// a little extra boost so the calm sounds are easy to hear
-	function gainFor(v) { return Math.pow(v / 100, 1.3) * 1.8; }
+	function gainFor(v) { return Math.pow(v / 100, 1.5) * 1.6; }
 
 	function chime() {
 		if (!ctx) return;
@@ -110,98 +110,118 @@ var FocusSounds = (function () {
 		} catch (e) { /* sound is optional */ }
 	}
 
-	/* ---- generated sounds ---- */
-	function noiseBuffer(kind) {
-		var len = ctx.sampleRate * 4;
-		var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-		var d = buf.getChannelData(0);
-		var last = 0, b0 = 0, b1 = 0, b2 = 0;
-		for (var i = 0; i < len; i++) {
-			var w = Math.random() * 2 - 1;
-			if (kind === "brown") {
-				last = (last + 0.02 * w) / 1.02;
-				d[i] = last * 3.5;
-			} else if (kind === "pink") {
-				b0 = 0.99765 * b0 + w * 0.099046;
-				b1 = 0.963 * b1 + w * 0.2965164;
-				b2 = 0.57 * b2 + w * 1.0526913;
-				d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.11;
-			} else {
-				d[i] = w;
-			}
+	/* ---- calm sounds, made in the browser (work offline) ---- */
+	function midi(n) { return 440 * Math.pow(2, (n - 69) / 12); }
+
+	// a soft "room" echo so the sounds feel spacious
+	var reverb = null;
+	function getReverb() {
+		if (reverb) return reverb;
+		var len = Math.floor(ctx.sampleRate * 3.5);
+		var ir = ctx.createBuffer(2, len, ctx.sampleRate);
+		for (var c = 0; c < 2; c++) {
+			var d = ir.getChannelData(c);
+			for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
 		}
-		return buf;
+		reverb = ctx.createConvolver();
+		reverb.buffer = ir;
+		var wet = ctx.createGain();
+		wet.gain.value = 0.55;
+		reverb.connect(wet).connect(master);
+		return reverb;
 	}
 
-	function source(kind) {
-		var src = ctx.createBufferSource();
-		src.buffer = noiseBuffer(kind);
-		src.loop = true;
-		return src;
-	}
-
-	function lfo(target, rate, depth, base) {
-		var o = ctx.createOscillator();
+	// one gentle note: soft start, slow fade
+	function note(out, freq, when, opts) {
+		opts = opts || {};
+		var dur = opts.dur || 3, peak = opts.gain || 0.12, attack = opts.attack || 0.015;
 		var g = ctx.createGain();
-		o.frequency.value = rate;
-		g.gain.value = depth;
-		target.value = base;
-		o.connect(g).connect(target);
-		o.start();
-		return o;
+		var lp = ctx.createBiquadFilter();
+		lp.type = "lowpass";
+		lp.frequency.value = opts.cutoff || 2200;
+		g.gain.setValueAtTime(0.0001, when);
+		g.gain.exponentialRampToValueAtTime(peak, when + attack);
+		g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+		lp.connect(g).connect(out);
+		(opts.partials || [[1, 1, "sine"]]).forEach(function (p) {
+			var o = ctx.createOscillator();
+			var pg = ctx.createGain();
+			o.type = p[2] || "sine";
+			o.frequency.value = freq * p[0];
+			if (p[3]) o.detune.value = p[3];
+			pg.gain.value = p[1];
+			o.connect(pg).connect(lp);
+			o.start(when);
+			o.stop(when + dur + 0.1);
+		});
 	}
+
+	function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+	function rand(a, b) { return a + Math.random() * (b - a); }
+
+	var PENTA = [60, 62, 64, 67, 69, 72, 74, 76];           // C major pentatonic: every note fits together
+	var CHORDS = [[48, 55, 64, 71], [45, 52, 60, 67], [41, 48, 57, 64], [43, 50, 59, 62]]; // Cmaj7, Am7, Fmaj7, G
 
 	function build(name) {
-		var nodes = [], out = ctx.createGain(), timers = [];
+		var out = ctx.createGain(), timers = [];
 		out.connect(master);
-		var src, f1, f2, g;
-		if (name === "rain") {
-			src = source("white");
-			f1 = ctx.createBiquadFilter(); f1.type = "highpass"; f1.frequency.value = 800;
-			f2 = ctx.createBiquadFilter(); f2.type = "lowpass"; f2.frequency.value = 7500;
-			g = ctx.createGain(); g.gain.value = 0.35;
-			src.connect(f1).connect(f2).connect(g).connect(out);
-			nodes.push(src);
-		} else if (name === "waves") {
-			src = source("brown");
-			f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = 900;
-			g = ctx.createGain();
-			src.connect(f1).connect(g).connect(out);
-			nodes.push(src, lfo(g.gain, 0.09, 0.55, 0.65));
-		} else if (name === "forest") {
-			src = source("pink");
-			f1 = ctx.createBiquadFilter(); f1.type = "bandpass"; f1.frequency.value = 500; f1.Q.value = 0.4;
-			g = ctx.createGain();
-			src.connect(f1).connect(g).connect(out);
-			nodes.push(src, lfo(g.gain, 0.05, 0.3, 0.6));
-			var chirp = function () {
-				if (currentName !== "forest") return;
-				var t = ctx.currentTime, base = 2200 + Math.random() * 1500;
-				for (var k = 0; k < 2 + Math.floor(Math.random() * 3); k++) {
-					var o = ctx.createOscillator(), cg = ctx.createGain(), st = t + k * 0.16;
-					o.type = "sine";
-					o.frequency.setValueAtTime(base, st);
-					o.frequency.exponentialRampToValueAtTime(base * 1.35, st + 0.09);
-					cg.gain.setValueAtTime(0.0001, st);
-					cg.gain.exponentialRampToValueAtTime(0.08, st + 0.02);
-					cg.gain.exponentialRampToValueAtTime(0.0001, st + 0.12);
-					o.connect(cg).connect(out);
-					o.start(st); o.stop(st + 0.14);
-				}
-				timers.push(setTimeout(chirp, 3000 + Math.random() * 6000));
+		out.connect(getReverb());
+		var alive = function () { return currentName === name && current && current.out === out; };
+		var loop = function (fn, minS, maxS, firstS) {
+			var run = function () {
+				if (!alive()) return;
+				fn();
+				timers.push(setTimeout(run, rand(minS, maxS) * 1000));
 			};
-			timers.push(setTimeout(chirp, 1500));
-		} else {
-			src = source("brown");
-			f1 = ctx.createBiquadFilter(); f1.type = "lowpass"; f1.frequency.value = 500;
-			g = ctx.createGain(); g.gain.value = 0.8;
-			src.connect(f1).connect(g).connect(out);
-			nodes.push(src);
+			timers.push(setTimeout(run, (firstS || 0.2) * 1000));
+		};
+
+		if (name === "piano") {
+			// slow, soft piano-like notes
+			loop(function () {
+				var t = ctx.currentTime + 0.05;
+				var n = pick(PENTA);
+				note(out, midi(n), t, { dur: 4.5, gain: 0.11, cutoff: 1800,
+					partials: [[1, 1, "sine"], [2, 0.18, "sine"], [3, 0.05, "sine"]] });
+				if (Math.random() < 0.3) {
+					note(out, midi(n - 12), t + 0.02, { dur: 5, gain: 0.07, cutoff: 1200,
+						partials: [[1, 1, "sine"], [2, 0.12, "sine"]] });
+				}
+			}, 1.4, 3.2, 0.3);
+		} else if (name === "ambient") {
+			// warm chords that slowly fade into each other
+			var ci = 0;
+			loop(function () {
+				var t = ctx.currentTime + 0.05;
+				CHORDS[ci % CHORDS.length].forEach(function (n, k) {
+					note(out, midi(n), t + k * 0.15, { dur: 11, attack: 3.5, gain: 0.045, cutoff: 900,
+						partials: [[1, 1, "sine", -5], [1, 1, "sine", 5], [2, 0.15, "triangle"]] });
+				});
+				ci++;
+			}, 8, 8, 0.2);
+		} else if (name === "bowls") {
+			// singing bowl rings out slowly
+			loop(function () {
+				var t = ctx.currentTime + 0.05;
+				var f = pick([196, 220, 261.63, 293.66]);
+				note(out, f, t, { dur: 10, attack: 0.03, gain: 0.12, cutoff: 3000,
+					partials: [[1, 1, "sine"], [1.003, 0.8, "sine"], [2.71, 0.25, "sine"], [5.15, 0.06, "sine"]] });
+			}, 6, 10, 0.3);
+		} else if (name === "chimes") {
+			// light, sparse wind chimes
+			var CH = [84, 86, 88, 91, 93];
+			loop(function () {
+				var t = ctx.currentTime + 0.05;
+				var count = Math.random() < 0.35 ? 2 + Math.floor(Math.random() * 2) : 1;
+				for (var k = 0; k < count; k++) {
+					note(out, midi(pick(CH)), t + k * rand(0.15, 0.4), { dur: 3.2, attack: 0.005, gain: 0.09, cutoff: 6000,
+						partials: [[1, 1, "sine"], [2.76, 0.2, "sine"]] });
+				}
+			}, 1.2, 3.8, 0.2);
 		}
-		nodes.forEach(function (n) { if (n instanceof AudioBufferSourceNode) n.start(); });
 		out.gain.setValueAtTime(0.0001, ctx.currentTime);
-		out.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.2);
-		return { out: out, nodes: nodes, timers: timers };
+		out.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.5);
+		return { out: out, nodes: [], timers: timers };
 	}
 
 	function stopGenerated() {
@@ -212,12 +232,9 @@ var FocusSounds = (function () {
 		try {
 			c.out.gain.cancelScheduledValues(ctx.currentTime);
 			c.out.gain.setValueAtTime(Math.max(c.out.gain.value, 0.001), ctx.currentTime);
-			c.out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+			c.out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
 		} catch (e) {}
-		setTimeout(function () {
-			c.nodes.forEach(function (n) { try { n.stop(); } catch (e) {} });
-			try { c.out.disconnect(); } catch (e) {}
-		}, 700);
+		setTimeout(function () { try { c.out.disconnect(); } catch (e) {} }, 1400);
 	}
 
 	/* ---- music (SoundCloud player, needs internet) ---- */
@@ -247,7 +264,7 @@ var FocusSounds = (function () {
 
 	function musicFailed() {
 		if (currentName !== "music") return;
-		setNowPlaying("Music isn't available offline. Try Rain or Waves 🌧️");
+		setNowPlaying("Music needs internet. Try Soft piano 🎹, it works offline");
 	}
 
 	function startMusic() {
@@ -299,7 +316,10 @@ var FocusSounds = (function () {
 	}
 
 	document.querySelectorAll(".sound-btn").forEach(function (btn) {
-		btn.addEventListener("click", function () { select(btn.dataset.sound); });
+		btn.addEventListener("click", function () {
+			select(btn.dataset.sound);
+			FocusStore.set("focusSoundOff", currentName === "quiet");
+		});
 	});
 	document.querySelectorAll(".sound-volume").forEach(function (el) {
 		el.addEventListener("input", function () { setVolume(Number(el.value)); });
@@ -307,20 +327,49 @@ var FocusSounds = (function () {
 	setVolume(volume);
 	renderButtons();
 
-	/* ---- ask which sound to use when the app opens ---- */
+	/* ---- when the app opens: Music is the default sound ---- */
+	var DEFAULT_SOUND = "music";
 	var dialog = document.getElementById("sound-dialog");
 	var dontAsk = document.getElementById("sound-dont-ask");
+
+	function playDefaultOnFirstTap() {
+		// browsers only allow sound after a tap or click, so the default starts on the first one
+		var go = function () {
+			window.removeEventListener("pointerdown", go, true);
+			window.removeEventListener("keydown", go, true);
+			if (currentName === "quiet" && FocusStore.get("focusSoundOff", false) !== true) select(DEFAULT_SOUND);
+		};
+		window.addEventListener("pointerdown", go, true);
+		window.addEventListener("keydown", go, true);
+	}
+
 	function askOnOpen() {
-		if (!dialog || !FocusSettings.get("askSound")) return;
 		if (new URLSearchParams(location.search).get("start")) return; // opened from a shortcut
+		if (!dialog || !FocusSettings.get("askSound")) { playDefaultOnFirstTap(); return; }
+		var picked = false;
+		// show Music as the selected default
+		dialog.querySelectorAll(".sound-btn").forEach(function (b) {
+			var on = b.dataset.sound === DEFAULT_SOUND;
+			b.classList.toggle("active", on);
+			b.setAttribute("aria-pressed", on ? "true" : "false");
+		});
 		try {
 			if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
 		} catch (e) { return; }
-		// picking a sound in the window closes it
+		// picking a sound plays it and closes the window
 		dialog.querySelectorAll(".sound-btn").forEach(function (btn) {
-			btn.addEventListener("click", function () { setTimeout(function () { if (dialog.open) dialog.close(); }, 250); });
+			btn.addEventListener("click", function () {
+				picked = true;
+				FocusStore.set("focusSoundOff", btn.dataset.sound === "quiet");
+				setTimeout(function () { if (dialog.open) dialog.close("picked"); }, 250);
+			});
 		});
 		dialog.addEventListener("close", function () {
+			// "Start studying" without picking = play the default (Music)
+			if (!picked && dialog.returnValue === "start") {
+				FocusStore.set("focusSoundOff", false);
+				select(DEFAULT_SOUND);
+			}
 			if (dontAsk && dontAsk.checked) {
 				FocusSettings.set("askSound", false);
 				if (typeof FocusSettingsUI !== "undefined") FocusSettingsUI.sync();
@@ -328,7 +377,7 @@ var FocusSounds = (function () {
 		});
 	}
 
-	return { unlock: unlock, chime: chime, select: select, askOnOpen: askOnOpen, playing: function () { return currentName; } };
+	return { unlock: unlock, chime: chime, select: select, askOnOpen: askOnOpen, playing: function () { return currentName; }, _master: function () { return master; } };
 })();
 
 /* ===== Study stats: minutes per day, week total, streak, 7-day chart ===== */
@@ -547,11 +596,7 @@ var FocusStats = (function () {
 		FocusStore.set("focusTheme", t);
 		apply(t);
 	});
-	try {
-		matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
-			if (!FocusStore.get("focusTheme", null)) apply(e.matches ? "dark" : "light");
-		});
-	} catch (e) { /* older browsers */ }
+	// Starts light (the original cherry blossom look); dark only when chosen with the 🌙 button
 })();
 
 /* ===== Study Timer with Pomodoro cycle ===== */
