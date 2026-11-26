@@ -1,0 +1,40 @@
+{
+  "name": "Focus 2.0 | Study Break",
+  "short_name": "Focus 2",
+  "description": "A study break app with a Pomodoro timer, progress stats, guided breathing, calm sounds and a mini game.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e5f3e7",
+  "theme_color": "#285d43",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start 25 min focus",
+      "short_name": "Focus",
+      "description": "Start a focus session right away",
+      "url": "./index.html?start=focus#studying",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Take a break",
+      "short_name": "Break",
+      "description": "Start a short break right away",
+      "url": "./index.html?start=break#studying",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Breathe",
+      "short_name": "Breathe",
+      "description": "Open the breathing guide",
+      "url": "./index.html#breathing",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

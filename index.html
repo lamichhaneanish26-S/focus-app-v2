@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<!--Last Updated: 2026-11-26 — Focus 2.0-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus | Study Break</title>
+    <meta name="description" content="A study break app that helps you stay focused, take mindful breaks, and avoid burnout.">
+
+    <!-- App install settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#285d43">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Focus 2">
+
+    <!-- Apply the saved light/dark theme before the page draws, so it doesn't flash -->
+    <script>
+        try {
+            var t = localStorage.getItem("focusTheme");
+            if (t) t = JSON.parse(t);
+            if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+            document.documentElement.dataset.theme = t;
+        } catch (e) { document.documentElement.dataset.theme = "light"; }
+    </script>
+
+    <link rel="stylesheet" href="Focus.css">
+</head>
+
+<body>
+	<!-- Background Music Player -->
+<div class="music-player">
+	<iframe allow="autoplay; encrypted-media" title="Background music"
+		src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A1476190729&color=%23ff5500&auto_play=true&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true">
+	</iframe>
+</div>
+
+    <div class="app-shell">
+
+        <!-- Header -->
+        <header class="site-header" id="home">
+            <a class="brand" href="#home">
+                <span class="brand-icon">🌲</span>
+                <span>
+                    <strong>Focus</strong>
+                    <small>Study • Focus • Recharge</small>
+                </span>
+            </a>
+
+            <nav class="top-nav" aria-label="Main navigation">
+                <a href="#home">⌂ Home</a>
+                <a href="#studying">🌱 Focus</a>
+                <a href="#progress">📊 Progress</a>
+                <a href="#breaks">♡ Break</a>
+                <a href="#gaming">🎮 Game</a>
+                <button id="theme-btn" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Dark / light mode">🌙</button>
+                <button id="settings-btn" class="icon-btn" type="button" aria-label="Open settings" title="Settings">⚙️</button>
+                <button id="install-btn" class="install-btn" hidden>⬇ Install App</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Welcome + timer -->
+            <div class="hero-layout">
+                <section class="welcome-panel">
+                    <h1>Welcome to<br>Focus ♡</h1>
+                    <p>
+                        A study break app that helps you stay
+                        focused, take mindful breaks, and avoid burnout.
+                    </p>
+
+
+                    <!-- Sleeping cat illustration goes here later -->
+                    <div class="welcome-art" aria-hidden="true"></div>
+                </section>
+
+                <section id="studying" class="timer-panel" data-mode="focus">
+                    <h3>⏱ Study Timer</h3>
+
+                    <!-- Pomodoro modes -->
+                    <div class="mode-tabs" role="tablist" aria-label="Timer mode">
+                        <button class="mode-tab" type="button" role="tab" data-mode="focus">Focus</button>
+                        <button class="mode-tab" type="button" role="tab" data-mode="short">Short break</button>
+                        <button class="mode-tab" type="button" role="tab" data-mode="long">Long break</button>
+                    </div>
+
+                    <div id="container-1">
+                        <p id="hour-label" class="label">Hours</p>
+                        <p id="min-label" class="label">Minutes</p>
+                        <p id="sec-label" class="label">Seconds</p>
+
+                        <input id="hour" type="number"
+                               min="0" max="99" value="0"
+                               class="time" aria-label="Hours">
+
+                        <p id="p1" class="semicolon">:</p>
+
+                        <input id="min" type="number"
+                               min="0" max="59" value="0"
+                               class="time" aria-label="Minutes">
+
+                        <p id="p2" class="semicolon">:</p>
+
+                        <input id="sec" type="number"
+                               min="0" max="59" value="0"
+                               class="time" aria-label="Seconds">
+
+                        <button id="start" class="btn">▶ Start</button>
+                        <button id="pause" class="btn">Ⅱ Pause</button>
+                        <button id="reset" class="btn">↻ Reset</button>
+                    </div>
+
+                    <div class="timer-presets" aria-label="Quick timers">
+                        <button class="preset" data-min="25" data-mode="focus">25 min focus</button>
+                        <button class="preset" data-min="50" data-mode="focus">50 min focus</button>
+                        <button class="preset" data-min="5" data-mode="short">5 min break</button>
+                        <button class="preset" data-min="15" data-mode="long">15 min break</button>
+                    </div>
+
+                    <!-- Pomodoro session counter -->
+                    <div class="session-row">
+                        <span class="session-label">Sessions</span>
+                        <span id="session-dots" class="session-dots" aria-live="polite"></span>
+                        <span id="session-count" class="session-count"></span>
+                    </div>
+
+                    <p id="timer-status" class="timer-status" aria-live="polite">Pick a quick timer or type a time, then press Start.</p>
+
+                    <button id="notify-btn" class="link-btn" type="button" hidden>🔔 Turn on alerts when time is up</button>
+
+                    <!-- Break reminder, shown during breaks -->
+                    <div id="break-tip" class="break-tip" hidden>
+                        <span id="break-tip-text"></span>
+                        <button id="break-tip-next" class="link-btn" type="button">Another idea ↻</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Progress: stats + session tasks -->
+            <section id="progress" class="progress-section">
+                <h2>Your progress 📊</h2>
+                <div class="progress-grid">
+                    <div class="panel stats-panel">
+                        <div class="stat-tiles">
+                            <div class="stat"><span id="stat-today" class="stat-num">0</span><span class="stat-label">min today</span></div>
+                            <div class="stat"><span id="stat-week" class="stat-num">0</span><span class="stat-label">min this week</span></div>
+                            <div class="stat"><span id="stat-streak" class="stat-num">0</span><span class="stat-label">day streak 🔥</span></div>
+                            <div class="stat"><span id="stat-sessions" class="stat-num">0</span><span class="stat-label">sessions today</span></div>
+                        </div>
+                        <div id="week-chart" class="week-chart" aria-label="Minutes focused, last 7 days"></div>
+                        <p class="small-note">Your stats are saved on this device only.</p>
+                    </div>
+
+                    <div class="panel tasks-panel">
+                        <h4>📝 This session's tasks</h4>
+                        <form id="task-form" class="task-form" autocomplete="off">
+                            <input id="task-input" type="text" maxlength="120" placeholder="e.g. Finish chapter 4 notes" aria-label="New task">
+                            <button type="submit" class="btn small-btn">Add</button>
+                        </form>
+                        <ul id="task-list" class="task-list"></ul>
+                        <p id="task-empty" class="small-note">Write down 1–3 things to work on, then tick them off.</p>
+                        <button id="task-clear" class="link-btn" type="button" hidden>Clear finished tasks</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Break activity cards -->
+            <section id="breaks" class="break-section">
+                <h2>Take a little break 🌿</h2>
+
+                <div class="activity-grid">
+                    <a class="activity-card breathing-card" href="#breathing">
+                        <h4>🌱 Breathing</h4>
+                        <p>Reset your mind with guided breathing.</p>
+                        <div class="activity-art breathing-art"
+                             aria-hidden="true"></div>
+                    </a>
+
+                    <a class="activity-card stretching-card" href="#stretching">
+                        <h4>🧘 Stretching</h4>
+                        <p>Loosen up and refresh your body.</p>
+                        <div class="activity-art stretching-art"
+                             aria-hidden="true"></div>
+                    </a>
+
+                    <a class="activity-card gaming-card" href="#gaming">
+                        <h4>🎮 Mini Game</h4>
+                        <p>Take a short, fun brain break!</p>
+                        <div class="activity-art gaming-art"
+                             aria-hidden="true"></div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Calm sounds (made in the browser, work offline) -->
+            <section id="sounds" class="activity-detail">
+                <h2>Calm sounds 🎧</h2>
+                <p>Background sounds made right in the app, so they work even offline.</p>
+                <div class="sound-grid">
+                    <button class="sound-btn" type="button" data-sound="rain" aria-pressed="false">🌧️<span>Rain</span></button>
+                    <button class="sound-btn" type="button" data-sound="waves" aria-pressed="false">🌊<span>Waves</span></button>
+                    <button class="sound-btn" type="button" data-sound="forest" aria-pressed="false">🌲<span>Forest</span></button>
+                    <button class="sound-btn" type="button" data-sound="brown" aria-pressed="false">🟤<span>Brown noise</span></button>
+                </div>
+                <label class="volume-row">🔈
+                    <input id="sound-volume" type="range" min="0" max="100" value="50" aria-label="Sound volume">
+                🔊</label>
+            </section>
+
+            <!-- Existing activity sections -->
+            <section id="breathing" class="activity-detail">
+                <h2>Guided Breathing Exercises</h2>
+                <p>Take a moment to slow down and breathe.</p>
+
+                <!-- Offline breathing guide -->
+                <div class="breath-guide">
+                    <div class="breath-stage">
+                        <div id="breath-circle" class="breath-circle">
+                            <span id="breath-phase">Ready</span>
+                            <span id="breath-count" class="breath-count"></span>
+                        </div>
+                    </div>
+                    <div class="breath-controls">
+                        <select id="breath-pattern" aria-label="Breathing pattern">
+                            <option value="box">Box breathing (4-4-4-4)</option>
+                            <option value="478">Relax (4-7-8)</option>
+                            <option value="calm">Calm (in 4, out 6)</option>
+                        </select>
+                        <button id="breath-start" class="btn small-btn" type="button">▶ Start</button>
+                        <span id="breath-rounds" class="small-note">Works offline</span>
+                    </div>
+                </div>
+
+                <p class="small-note">Prefer a video? This one needs internet:</p>
+                <iframe width="1000" height="315" src="https://www.youtube.com/embed/LwUyeKUred8?si=p30xmVYbk2-KAnHB&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </section>
+
+            <section id="stretching" class="activity-detail">
+                <h2>Move with Stretching</h2>
+                <p>Stretch and recharge before your next study session.</p>
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/xnyI1KRzhQM?si=gJUiP5iVoSJCT8wR" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </section>
+
+            <section id="gaming" class="activity-detail">
+                <h2>Snake Game 🎮</h2>
+
+
+
+
+				<!-- Snake Game  -->
+				<div id="snake-game-widget">
+  					<div id="snake-game-header">
+    					<span>Score: <span id="snake-score">0</span></span>
+    					<span>High Score: <span id="snake-high-score">0</span></span>
+  					</div>
+
+  					<canvas id="snake-canvas" width="600" height="600"></canvas>
+
+  					<div id="snake-controls">Use <b>Arrow Keys</b> or <b>swipe</b> to move</div>
+
+					<!-- On-screen buttons for phones and tablets -->
+					<div id="snake-dpad" aria-label="Snake direction controls">
+						<button data-dir="ArrowUp" class="dpad-up" aria-label="Up">▲</button>
+						<button data-dir="ArrowLeft" class="dpad-left" aria-label="Left">◀</button>
+						<button data-dir="ArrowRight" class="dpad-right" aria-label="Right">▶</button>
+						<button data-dir="ArrowDown" class="dpad-down" aria-label="Down">▼</button>
+					</div>
+
+					<div id="snake-action-bar">
+						<select id="snake-speed-select" aria-label="Game Speed">
+							<option value="200">Slow</option>
+							<option value="150" selected>Normal</option>
+							<option value="100">Fast</option>
+						</select>
+
+  					<button id="snake-start-btn">Start Game</button>
+					</div>
+				</div>
+
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Settings -->
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+        <form method="dialog" class="settings-form">
+            <h3 id="settings-title">⚙️ Settings</h3>
+
+            <fieldset>
+                <legend>Timer lengths (minutes)</legend>
+                <label>Focus <input id="set-focus" type="number" min="1" max="180"></label>
+                <label>Short break <input id="set-short" type="number" min="1" max="60"></label>
+                <label>Long break <input id="set-long" type="number" min="1" max="90"></label>
+                <label>Long break after <input id="set-every" type="number" min="2" max="8"> focus sessions</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Pomodoro cycle</legend>
+                <label class="check"><input id="set-autobreak" type="checkbox"> Start breaks automatically</label>
+                <label class="check"><input id="set-autofocus" type="checkbox"> Start the next focus session automatically</label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Alerts and comfort</legend>
+                <label class="check"><input id="set-sound" type="checkbox"> Chime when time is up</label>
+                <label class="check"><input id="set-notify" type="checkbox"> Pop-up alert when time is up</label>
+                <label class="check"><input id="set-reminders" type="checkbox"> Show break ideas (stretch, drink water…)</label>
+                <label class="check"><input id="set-awake" type="checkbox"> Keep the screen on while the timer runs</label>
+            </fieldset>
+
+            <div class="settings-actions">
+                <button id="stats-reset" class="link-btn danger" type="button">Reset my stats</button>
+                <button class="btn small-btn" value="close">Done</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="Focus.js"></script>
+</body>
+</html>
