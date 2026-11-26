@@ -36,7 +36,7 @@ Get Focus for every device at **download.html** (the "⬇ Get the app" button in
 | iPhone and iPad | Safari → Share → Add to Home Screen |
 
 The files are built automatically by GitHub Actions (`.github/workflows/build-apps.yml`) and published on the Releases page.
-To make a new release: push a tag such as `v2.0.1`.
+Every update to `main` rebuilds the apps. To publish a new version instead of updating the current one, raise `version` in `apps/desktop/package.json` (e.g. `2.0.1`).
 
 - `apps/desktop` — the Windows/Mac/Linux app (Electron). It opens the live website, so it always has the latest version, and falls back to a copy inside the app when offline.
 - `apps/android` — the Android app (Capacitor). The website is bundled inside, so it works fully offline, and timer alerts use Android notifications.
