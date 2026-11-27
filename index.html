@@ -51,7 +51,7 @@
                 <a href="#progress">📊 Progress</a>
                 <a href="#breaks">♡ Break</a>
                 <a href="#sounds">🎧 Sounds</a>
-                <a href="#gaming">🎮 Game</a>
+                <a href="#gaming">🎮 Games</a>
                 <button id="theme-btn" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Dark / light mode">🌙</button>
                 <button id="settings-btn" class="icon-btn" type="button" aria-label="Open settings" title="Settings">⚙️</button>
                 <button id="install-btn" class="install-btn" type="button">⬇ Install App</button>
@@ -183,8 +183,8 @@
                     </a>
 
                     <a class="activity-card gaming-card" href="#gaming">
-                        <h4>🎮 Mini Game</h4>
-                        <p>Take a short, fun brain break!</p>
+                        <h4>🎮 Mini Games</h4>
+                        <p>Snake, Memory Match, 2048 and Bubble Pop.</p>
                         <div class="activity-art gaming-art"
                              aria-hidden="true"></div>
                     </a>
@@ -262,11 +262,18 @@
             </section>
 
             <section id="gaming" class="activity-detail">
-                <h2>Snake Game 🎮</h2>
+                <h2>Mini games 🎮</h2>
+                <p>Quick, fun brain breaks. Pick a game:</p>
 
+                <div class="game-tabs" role="tablist" aria-label="Choose a game">
+                    <button class="game-tab active" type="button" role="tab" aria-selected="true" data-game="snake">🐍 Snake</button>
+                    <button class="game-tab" type="button" role="tab" aria-selected="false" data-game="memory">🧠 Memory Match</button>
+                    <button class="game-tab" type="button" role="tab" aria-selected="false" data-game="g2048">🔢 2048</button>
+                    <button class="game-tab" type="button" role="tab" aria-selected="false" data-game="bubbles">🫧 Bubble Pop</button>
+                </div>
 
-
-
+                <!-- Snake -->
+                <div class="game-panel" data-game="snake" role="tabpanel">
 				<!-- Snake Game  -->
 				<div id="snake-game-widget">
   					<div id="snake-game-header">
@@ -296,8 +303,63 @@
   					<button id="snake-start-btn">Start Game</button>
 					</div>
 				</div>
+                </div>
 
+                <!-- Memory Match -->
+                <div class="game-panel" data-game="memory" role="tabpanel" hidden>
+                    <div class="game-card">
+                        <div class="game-bar">
+                            <span>Moves <b id="mem-moves">0</b></span>
+                            <span>Time <b id="mem-time">0:00</b></span>
+                            <span>Best <b id="mem-best">–</b></span>
+                        </div>
+                        <div id="mem-grid" class="mem-grid" aria-label="Memory cards"></div>
+                        <p id="mem-msg" class="game-msg" aria-live="polite">Flip two cards at a time and find all the matching pairs.</p>
+                        <div class="game-actions">
+                            <select id="mem-size" aria-label="Difficulty">
+                                <option value="6">Easy · 12 cards</option>
+                                <option value="8" selected>Normal · 16 cards</option>
+                                <option value="10">Hard · 20 cards</option>
+                            </select>
+                            <button id="mem-new" class="btn small-btn" type="button">↻ New game</button>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- 2048 -->
+                <div class="game-panel" data-game="g2048" role="tabpanel" hidden>
+                    <div class="game-card">
+                        <div class="game-bar">
+                            <span>Score <b id="g2048-score">0</b></span>
+                            <span>Best <b id="g2048-best">0</b></span>
+                        </div>
+                        <div id="g2048-board" class="g2048-board" tabindex="0" aria-label="2048 board. Use the arrow keys or swipe to move the tiles."></div>
+                        <p id="g2048-msg" class="game-msg" aria-live="polite">Use the arrow keys or swipe. Matching tiles join together — can you reach 2048?</p>
+                        <div class="game-actions">
+                            <button id="g2048-new" class="btn small-btn" type="button">↻ New game</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bubble Pop -->
+                <div class="game-panel" data-game="bubbles" role="tabpanel" hidden>
+                    <div class="game-card">
+                        <div class="game-bar">
+                            <span>Popped <b id="bub-count">0</b></span>
+                            <span id="bub-time-wrap" hidden>Time <b id="bub-time">60</b></span>
+                            <span>Best <b id="bub-best">0</b></span>
+                        </div>
+                        <div id="bub-area" class="bub-area" aria-label="Bubble area. Tap the bubbles to pop them.">
+                            <p class="bub-start">Pick a mode below to start 🫧</p>
+                        </div>
+                        <p id="bub-msg" class="game-msg" aria-live="polite">Tap the bubbles to pop them. Each pop plays a soft note.</p>
+                        <div class="game-actions">
+                            <button id="bub-relax" class="btn small-btn" type="button">🫧 Relax mode</button>
+                            <button id="bub-challenge" class="btn small-btn" type="button">⏱ 60-second challenge</button>
+                            <button id="bub-stop" class="btn small-btn" type="button" hidden>■ Stop</button>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
@@ -367,5 +429,6 @@
     </dialog>
 
     <script src="Focus.js"></script>
+    <script src="games.js"></script>
 </body>
 </html>

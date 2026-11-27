@@ -1376,6 +1376,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function startGame() {
+    isPaused = false;
     snake = [
       { x: 10, y: 10 },
       { x: 9, y: 10 },
@@ -1555,7 +1556,28 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  startBtn.addEventListener("click", startGame);
+  // Pause Snake when another game tab is opened
+  let isPaused = false;
+  function pauseGame() {
+    if (!isGameRunning) return;
+    clearInterval(gameLoop);
+    isGameRunning = false;
+    isPaused = true;
+    startBtn.textContent = "Resume";
+    actionBar.style.display = "flex";
+  }
+  document.addEventListener("focus:game-hidden", function (e) { if (e.detail === "snake") pauseGame(); });
+
+  startBtn.addEventListener("click", function () {
+    if (isPaused) {
+      isPaused = false;
+      isGameRunning = true;
+      actionBar.style.display = "none";
+      gameLoop = setInterval(update, Number(speedSelect.value));
+      return;
+    }
+    startGame();
+  });
 
   // Display start screen on load
   drawStartScreen();

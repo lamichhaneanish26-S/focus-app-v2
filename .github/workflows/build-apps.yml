@@ -49,7 +49,7 @@ jobs:
       - name: Copy the website into the app
         run: |
           mkdir -p web
-          cp -r ../../index.html ../../download.html ../../Focus.css ../../Focus.js ../../manifest.json ../../sw.js ../../Images ../../icons web/
+          cp -r ../../index.html ../../download.html ../../Focus.css ../../Focus.js ../../games.js ../../manifest.json ../../sw.js ../../Images ../../icons web/
       - name: Install
         run: npm install --no-audit --no-fund
       - name: Build
@@ -84,7 +84,7 @@ jobs:
       - name: Copy the website into the app
         run: |
           mkdir -p www
-          cp -r ../../index.html ../../download.html ../../Focus.css ../../Focus.js ../../manifest.json ../../sw.js ../../Images ../../icons www/
+          cp -r ../../index.html ../../download.html ../../Focus.css ../../Focus.js ../../games.js ../../manifest.json ../../sw.js ../../Images ../../icons www/
       - name: Install
         run: npm install --no-audit --no-fund
       - name: Create the Android project
